@@ -1,6 +1,8 @@
 import 'package:android_terminal_launcher/app.dart';
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/app_info.dart';
+import 'package:android_terminal_launcher/services/theme_choice.dart';
+import 'package:android_terminal_launcher/services/theme_controller.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
 import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/terminal_session.dart';
@@ -11,6 +13,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../fakes/fake_app_repository.dart';
+import '../fakes/in_memory_local_store.dart';
+
+ThemeController _themes() {
+  final themes = ThemeController(store: InMemoryLocalStore());
+  addTearDown(themes.dispose);
+  return themes;
+}
 
 Future<TerminalSession> _pumpApp(
   WidgetTester tester, {
@@ -25,7 +34,7 @@ Future<TerminalSession> _pumpApp(
     banner: banner,
   );
   addTearDown(session.dispose);
-  await tester.pumpWidget(App(session: session));
+  await tester.pumpWidget(App(session: session, themes: _themes()));
   return session;
 }
 
@@ -85,7 +94,7 @@ void main() {
     await _type(tester, 'nope');
 
     final text = tester.widget<Text>(find.text('unknown command: nope'));
-    expect(text.style?.color, terminalTheme.colorScheme.error);
+    expect(text.style?.color, themeFor(ThemeChoice.dark).colorScheme.error);
   });
 
   testWidgets('input is cleared and keeps focus after submit', (tester) async {

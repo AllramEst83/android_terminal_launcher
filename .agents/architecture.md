@@ -19,7 +19,10 @@ lib/
     suggester.dart             # input line -> List<Suggestion>; suggestion.dart
     log_line.dart              # LogLine + LogKind (input/output/error)
     terminal_session.dart      # ChangeNotifier: log lines, submit(input)
-    commands/                  # one file per command + commands.dart (defaultCommands)
+    commands/                  # one file per command + commands.dart (built-in providers, defaultCommands)
+    providers/                 # providers that need a service built in main.dart (appearance, notes)
+    tools/                     # pure helpers behind commands: expression.dart (calc), units.dart (convert)
+    number_format.dart         # formatNumber: whole numbers plain, float noise rounded away
   services/                    # abstractions over the platform
     app_info.dart              # AppInfo(label, packageName)
     app_repository.dart        # abstract: list launchable apps, launch(packageName)
@@ -28,6 +31,8 @@ lib/
     local_store.dart           # abstract: read/write/delete JSON values by key
     local_store_exception.dart
     shared_preferences_local_store.dart  # the only file that knows shared_preferences
+    entry.dart, entry_store.dart # numbered notes/todos on a LocalStore (serialised calls)
+    theme_choice.dart, theme_settings.dart, theme_controller.dart  # theme enum, what commands may do, ChangeNotifier the app listens to
   ui/
     terminal_screen.dart
     terminal_log.dart          # reversed ListView pinned to the newest line
@@ -80,3 +85,7 @@ Record decisions that future agents can't derive from code (append, newest last)
 - Quoting lives entirely in `Tokenizer`. A word opens a quote (`"` or `'`) only at its start, so a mid-word apostrophe (`open McDonald's`) stays literal and needs no quoting. An unclosed quote sets `ParsedInput.hasUnterminatedQuote` and the session prints an error instead of running a guess. `Suggester` still works on the raw line and offers unquoted completions, which `open`/`uninstall` accept because they join args with spaces.
 - Providers, not context fields: a feature's service is captured by its commands' closures. `CommandContext` keeps only what every command or the suggester needs (`apps`, `commands`, `now`, `args`). The built-in commands are grouped as `SystemProvider` and `AppsProvider` (stateless, const); `defaultCommands` is derived from `defaultProviders`. Moving `apps` out of the context into `AppsProvider` was left for later because the suggester needs the app list too.
 - `LocalStore` is the only persistence features use: JSON values under string keys, each feature owning its keys (e.g. `theme`, `notes`). Backed by `shared_preferences` (async API, one JSON string per key), which suits settings and personal-scale notes; if data ever outgrows it (search, thousands of rows), replace `SharedPreferencesLocalStore` with a database-backed one, since nothing else knows the package. Reads return fresh copies, unreadable data throws `LocalStoreException` instead of being treated as empty (so a bad value is never silently overwritten), and a missing key is `null`. Tests share `test/services/local_store_contract.dart`, run against both the real store and `InMemoryLocalStore`, so the fake can't drift.
+- Themes: `ThemeChoice` (dark, light, coffee) lives in `services/`; `ui/theme.dart` maps it to colours with an exhaustive `switch`, so a theme can't exist without a palette. Only background, text and error colours are defined; cursor, suggestion borders and block separators derive from them, so new UI must use `Theme.of(context).colorScheme`, never a hardcoded colour. Status/navigation bars follow the theme through an `AnnotatedRegion` in `App`. The choice is saved under `theme` and loaded in `main()` before the first frame. The native launch screen stays black in every theme, so the light theme appears after Flutter's first frame.
+- `EntryStore` serialises every call (a future queue) because the UI does not await `submit`: two quick `note add` lines would otherwise both read the list and lose one. It refuses stored data that isn't a list of entries instead of treating it as empty, so it never overwrites what it can't read. Ids never repeat, even after removal. Notes and todos are two instances with different keys, so their numbering is independent.
+- Log block separation (`ui/terminal_log.dart`): an input line after other lines gets a faint divider above it; output and errors after the first command get a thin left rule. The banner (lines before any input) stays plain. Derived from the log's line kinds, so the session model is unchanged.
+- `calc`/`convert` accept `,` as a decimal mark (Swedish keyboards), so functions take one argument only. `convert` uses US customary volumes plus Swedish `krm`/`tsk`/`msk`, decimal `kb` (1000) and binary `kib` (1024).

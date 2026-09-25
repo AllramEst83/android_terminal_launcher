@@ -13,8 +13,14 @@ offline (the monospace font is bundled).
 | `uninstall <app>` | Open Android's uninstall confirmation for an app |
 | `refresh` | Re-query the installed-app list |
 | `date` / `time` | Show the current date or time |
+| `calc <expr>` | Calculate, e.g. `calc 2*(3+4)^2`, `calc sqrt(16)+pi` |
+| `convert <n> <from> <to>` | Convert units, e.g. `convert 5 km mi`; `convert units` lists them |
+| `theme [name]` | Show or change the theme: `dark`, `light`, `coffee` |
+| `note` / `todo` | Numbered lists: `add`, `list`, `show`, `edit`, `rm`, `find`; todos also `done`, `undo`, `clear` |
 | `help` | List commands (generated from the registry) |
 | `clear` | Clear the log |
+
+Quote text with spaces: `note add "buy milk"`.
 
 A strip above the prompt suggests command names and, after `open ` or
 `uninstall `, matching apps. Tapping a suggestion fills the input; Enter runs it.

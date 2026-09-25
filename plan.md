@@ -48,15 +48,20 @@ Built and unit-tested with no Flutter, so the UI is thin.
 Goal: the user rarely has to leave the launcher. Phases 0–6 above are the finished MVP; these continue from Phase 7 and are ordered by what each one needs, easiest first. Each feature is a **provider**: one group of commands (plus its service behind an interface and a fake for tests) registered into the existing registry. Every provider aims for create/read/update/delete, or a hand-off to the owning app where Android gives no API. Same finish rule as before: format, analyze, test clean, small verified steps.
 
 ### Phase 7 — Foundations + offline features (no permissions, no native code)
+**Status: complete (2026-09-25)** — apart from the items under "Still open" below.
 Do first, in this order:
-1. **On-device check of the existing MVP** (the pending item above). Nothing new is built on an unverified launcher.
+1. **On-device check of the existing MVP** (the pending item above). *Done by the user: looks good.* Nothing new is built on an unverified launcher.
 2. **Quoted arguments** in `Tokenizer` (`note add "buy milk"`). Notes, SMS and calendar events all need it; keep `ParsedInput` stable.
 3. **Provider model**: a `CommandProvider` that contributes commands and owns its service; `CommandContext` reaches services through it rather than growing a field per feature. Record the decision in `.agents/architecture.md`.
 4. **`LocalStore` interface** (small key/value + JSON) with an in-memory fake; first implementation on `shared_preferences`, swappable in one file. Reused by themes, notes, alarms, aliases.
-Then the three easiest features:
+Then the three easiest features (all done):
 - **Calculator + unit conversion** (`calc 2*(3+4)`, `convert 5 km mi`). Pure Dart: hand-written expression parser and a unit table. No dependency, no permission, no storage. Currency waits for Phase 8 (it needs network rates).
 - **Theme manager** (`theme list|set <name>`): Light, Dark, Coffee, all 90s-retro palettes in `ui/theme.dart`; choice saved in the store. Keep the Android launch theme black so there's no flash.
 - **Notes / todos** (`note add|list|show|edit|rm`, `todo add|done|list|rm`): full CRUD on the store; ids not indices so removal is stable.
+
+**UI: separate what belongs to what** (asked for during Phase 7). Subtle first: a faint divider above each command's echoed input, and a thin rule down the left edge of its output and errors; the welcome banner stays plain. Colours derive from the theme, so all three themes get it for free. *First pass done.* Next passes, only if daily use asks for them: dim older blocks, collapse long output, a per-block timestamp on tap, a stronger accent for errors.
+
+**Still open in Phase 7:** nothing blocking. Journal (dated entries) was in `features.md` beside notes; `note` already stores created/edited times, so it is a `note` view rather than a new store. Tap-to-copy on output lines would help with `calc`/`convert` results.
 
 ### Phase 8 — Network (adds only the `INTERNET` permission, missing from the main manifest today)
 Add an `HttpClient` abstraction (`dart:io` first, so no new dependency) with a fake.
@@ -100,3 +105,4 @@ Aliases, `&&` chaining, up-arrow/command history, custom macros, config-file exp
 - Phase 7, step 2 done (2026-09-25): quoted arguments in `Tokenizer` (`"…"`, `'…'`, backslash escapes, empty args, unterminated-quote error). Step 1 (on-device check, run by the user) is still open.
 - Phase 7, step 3 done (2026-09-25): `CommandProvider` + `CommandRegistry.fromProviders`; built-ins regrouped as `SystemProvider`/`AppsProvider`; `main.dart` builds the registry from `defaultProviders`. See `.agents/architecture.md` ("Adding a feature").
 - Phase 7, step 4 done (2026-09-25): `LocalStore` interface, `SharedPreferencesLocalStore` (added `shared_preferences`, official and maintained; `shared_preferences_platform_interface` as a dev dependency for its in-memory test platform), `InMemoryLocalStore` fake, and a shared contract test. Not wired into `main.dart` yet; the theme manager is its first consumer. Only step 1 (on-device check, run by the user) is open in the foundations; calculator, themes and notes are next.
+- Phase 7 complete (2026-09-25): on-device check passed (user); quoting, providers and `LocalStore` as above; **`calc`/`convert`** (pure-Dart expression parser and unit table incl. Swedish kitchen measures; `1,5` works as a decimal); **theme manager** (`theme [name]`: dark, light, coffee; saved in `LocalStore`; system bars follow the theme); **`note`/`todo`** (`EntryStore`: numbered, stable ids, calls serialised because the UI does not await commands); **block separation** in the log UI. `main.dart` is now async: it loads the saved theme before the first frame.

@@ -30,6 +30,37 @@ abstract final class Messages {
   static String exprUnknownName(String name) =>
       "unknown function or constant '$name'";
 
+  /// First form on the `usage:` line, the rest aligned beneath it.
+  static List<String> entryUsage(String command, List<String> forms) => [
+    'usage: $command ${forms.first}',
+    for (final form in forms.skip(1)) '       $command $form',
+  ];
+  static String entryStorageFailed(String command, String reason) =>
+      '$command: $reason';
+  static String noEntries(String plural, String command) =>
+      'no $plural yet (try: $command add "text")';
+  static String entryAdded(String noun, int id) => 'added $noun $id';
+  static String entryUpdated(String noun, int id) => 'updated $noun $id';
+  static String entryRemoved(String noun, int id, String text) =>
+      'removed $noun $id: $text';
+  static String entryMissing(String noun, int id) => 'no $noun with id $id';
+  static String entryBadId(String text) => "'$text' is not an entry id";
+  static String entryNoMatches(String plural, String query) =>
+      "no $plural matching '$query'";
+  static String todoMarked(int id, {required bool done}) =>
+      done ? 'todo $id done' : 'todo $id reopened';
+  static String todosCleared(int count) => count == 0
+      ? 'no finished todos to clear'
+      : 'cleared $count finished ${count == 1 ? 'todo' : 'todos'}';
+
+  static const themeUsage = 'usage: theme [name]';
+  static const themeHeader = 'themes:';
+  static String themeChanged(String name) => 'theme: $name';
+  static String themeNotSaved(String reason) =>
+      "could not save the theme, so it won't survive a restart: $reason";
+  static String unknownTheme(String name, List<String> available) =>
+      "no theme called '$name' (available: ${available.join(', ')})";
+
   static const convertUsage = [
     'usage: convert <value> <from> <to>',
     "  example: convert 5 km mi     (see all units: 'convert units')",
