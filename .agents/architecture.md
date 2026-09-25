@@ -25,6 +25,9 @@ lib/
     app_repository.dart        # abstract: list launchable apps, launch(packageName)
     app_repository_exception.dart
     android_app_repository.dart# MethodChannel implementation; caches, sorts, excludes self
+    local_store.dart           # abstract: read/write/delete JSON values by key
+    local_store_exception.dart
+    shared_preferences_local_store.dart  # the only file that knows shared_preferences
   ui/
     terminal_screen.dart
     terminal_log.dart          # reversed ListView pinned to the newest line
@@ -76,3 +79,4 @@ Record decisions that future agents can't derive from code (append, newest last)
 - `TerminalSession` never lets a command or suggester failure escape: `submit` catches `Object` (so `Error`s too) and logs an error line; `suggest` returns nothing on failure. After a failed app-list load, `suggest` skips the platform for 5 s (injectable clock) rather than re-querying on every keystroke; the first success clears it.
 - Quoting lives entirely in `Tokenizer`. A word opens a quote (`"` or `'`) only at its start, so a mid-word apostrophe (`open McDonald's`) stays literal and needs no quoting. An unclosed quote sets `ParsedInput.hasUnterminatedQuote` and the session prints an error instead of running a guess. `Suggester` still works on the raw line and offers unquoted completions, which `open`/`uninstall` accept because they join args with spaces.
 - Providers, not context fields: a feature's service is captured by its commands' closures. `CommandContext` keeps only what every command or the suggester needs (`apps`, `commands`, `now`, `args`). The built-in commands are grouped as `SystemProvider` and `AppsProvider` (stateless, const); `defaultCommands` is derived from `defaultProviders`. Moving `apps` out of the context into `AppsProvider` was left for later because the suggester needs the app list too.
+- `LocalStore` is the only persistence features use: JSON values under string keys, each feature owning its keys (e.g. `theme`, `notes`). Backed by `shared_preferences` (async API, one JSON string per key), which suits settings and personal-scale notes; if data ever outgrows it (search, thousands of rows), replace `SharedPreferencesLocalStore` with a database-backed one, since nothing else knows the package. Reads return fresh copies, unreadable data throws `LocalStoreException` instead of being treated as empty (so a bad value is never silently overwritten), and a missing key is `null`. Tests share `test/services/local_store_contract.dart`, run against both the real store and `InMemoryLocalStore`, so the fake can't drift.
