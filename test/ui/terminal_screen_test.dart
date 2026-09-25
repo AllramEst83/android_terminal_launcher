@@ -5,6 +5,7 @@ import 'package:android_terminal_launcher/terminal/command_registry.dart';
 import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/terminal_session.dart';
 import 'package:android_terminal_launcher/ui/suggestion_bar.dart';
+import 'package:android_terminal_launcher/ui/terminal_log.dart';
 import 'package:android_terminal_launcher/ui/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -15,11 +16,13 @@ Future<TerminalSession> _pumpApp(
   WidgetTester tester, {
   FakeAppRepository? apps,
   int maxLines = 500,
+  List<String> banner = const [],
 }) async {
   final session = TerminalSession(
     registry: CommandRegistry(defaultCommands),
     apps: apps ?? FakeAppRepository(),
     maxLines: maxLines,
+    banner: banner,
   );
   addTearDown(session.dispose);
   await tester.pumpWidget(App(session: session));
@@ -212,6 +215,85 @@ void main() {
       await typeText(tester, 'zzz');
 
       expect(find.byType(InkWell), findsNothing);
+    });
+  });
+
+  group('block separation', () {
+    testWidgets('the banner stays plain', (tester) async {
+      await _pumpApp(tester, banner: ['welcome']);
+
+      expect(find.text('welcome'), findsOneWidget);
+      expect(find.byKey(blockDividerKey), findsNothing);
+      expect(find.byKey(outputRuleKey), findsNothing);
+    });
+
+    testWidgets('a command with nothing above it has no divider', (
+      tester,
+    ) async {
+      await _pumpApp(tester);
+
+      await _type(tester, 'help');
+
+      expect(find.byKey(blockDividerKey), findsNothing);
+    });
+
+    testWidgets('each command after the first gets a divider above it', (
+      tester,
+    ) async {
+      await _pumpApp(tester);
+
+      await _type(tester, 'date');
+      await _type(tester, 'date');
+      await _type(tester, 'date');
+
+      expect(find.byKey(blockDividerKey), findsNWidgets(2));
+    });
+
+    testWidgets('a command right after the banner is divided from it', (
+      tester,
+    ) async {
+      await _pumpApp(tester, banner: ['welcome']);
+
+      await _type(tester, 'date');
+
+      expect(find.byKey(blockDividerKey), findsOneWidget);
+    });
+
+    testWidgets('output and errors get a rule, echoed input does not', (
+      tester,
+    ) async {
+      await _pumpApp(tester);
+
+      await _type(tester, 'help');
+      final helpLines = find.byKey(outputRuleKey).evaluate().length;
+      await _type(tester, 'nope');
+
+      expect(helpLines, greaterThan(1));
+      expect(find.byKey(outputRuleKey), findsNWidgets(helpLines + 1));
+      expect(
+        find.ancestor(
+          of: find.text(r'$ help'),
+          matching: find.byKey(outputRuleKey),
+        ),
+        findsNothing,
+      );
+      expect(
+        find.ancestor(
+          of: find.text('unknown command: nope'),
+          matching: find.byKey(outputRuleKey),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('clearing the log removes the markers', (tester) async {
+      await _pumpApp(tester, banner: ['welcome']);
+      await _type(tester, 'date');
+
+      await _type(tester, 'clear');
+
+      expect(find.byKey(blockDividerKey), findsNothing);
+      expect(find.byKey(outputRuleKey), findsNothing);
     });
   });
 

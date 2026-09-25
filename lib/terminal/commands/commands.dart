@@ -1,6 +1,8 @@
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_provider.dart';
+import 'package:android_terminal_launcher/terminal/commands/calc_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/clear_command.dart';
+import 'package:android_terminal_launcher/terminal/commands/convert_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/date_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/help_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/list_command.dart';
@@ -36,11 +38,23 @@ class AppsProvider implements CommandProvider {
   ];
 }
 
+/// Pure-logic helpers that need no service: calculator and unit conversion.
+class ToolsProvider implements CommandProvider {
+  const ToolsProvider();
+
+  @override
+  String get name => 'tools';
+
+  @override
+  List<Command> get commands => [calcCommand, convertCommand];
+}
+
 /// Registered at startup in `main.dart`. A new feature is a provider (its
 /// commands in their own files) plus a line here.
 const List<CommandProvider> defaultProviders = [
   SystemProvider(),
   AppsProvider(),
+  ToolsProvider(),
 ];
 
 /// Every command from [defaultProviders], flattened.

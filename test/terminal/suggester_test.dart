@@ -26,7 +26,7 @@ List<String> _labels(List<Suggestion> s) => s.map((x) => x.label).toList();
 void main() {
   group('command names', () {
     test('suggests commands by prefix', () {
-      expect(_labels(_suggest('c')), ['clear']);
+      expect(_labels(_suggest('c')), ['calc', 'clear', 'convert']);
       expect(_labels(_suggest('re')), ['refresh']);
     });
 
