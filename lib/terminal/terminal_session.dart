@@ -1,0 +1,116 @@
+import 'dart:collection';
+
+import 'package:android_terminal_launcher/messages.dart';
+import 'package:android_terminal_launcher/services/app_info.dart';
+import 'package:android_terminal_launcher/services/app_repository.dart';
+import 'package:android_terminal_launcher/terminal/command.dart';
+import 'package:android_terminal_launcher/terminal/command_registry.dart';
+import 'package:android_terminal_launcher/terminal/command_result.dart';
+import 'package:android_terminal_launcher/terminal/log_line.dart';
+import 'package:android_terminal_launcher/terminal/suggester.dart';
+import 'package:android_terminal_launcher/terminal/suggestion.dart';
+import 'package:android_terminal_launcher/terminal/tokenizer.dart';
+// Only for ChangeNotifier; the terminal layer stays free of widgets/platform.
+import 'package:flutter/foundation.dart';
+
+/// Owns the log and turns submitted lines into command runs. Widgets only
+/// render [lines] and forward input to [submit].
+class TerminalSession extends ChangeNotifier {
+  TerminalSession({
+    required this._registry,
+    required this._apps,
+    this._tokenizer = const Tokenizer(),
+    this._maxLines = 500,
+    this._clock = systemNow,
+    this._suggester = const Suggester(),
+    List<String> banner = const [],
+  }) {
+    for (final line in banner) {
+      _append(LogKind.output, line);
+    }
+  }
+
+  final CommandRegistry _registry;
+  final AppRepository _apps;
+  final Tokenizer _tokenizer;
+  final int _maxLines;
+  final DateTime Function() _clock;
+  final Suggester _suggester;
+
+  final List<LogLine> _lines = [];
+  late final UnmodifiableListView<LogLine> lines = UnmodifiableListView(_lines);
+  int _nextId = 0;
+  bool _disposed = false;
+
+  Future<void> submit(String input) async {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return;
+
+    _append(LogKind.input, '${Messages.prompt}$trimmed');
+    final parsed = _tokenizer.tokenize(trimmed);
+    final command = _registry.lookup(parsed.command);
+    if (command == null) {
+      _append(LogKind.error, Messages.unknownCommand(parsed.command));
+      notifyListeners();
+      return;
+    }
+
+    final CommandResult result;
+    try {
+      result = await command.run(
+        CommandContext(
+          args: parsed.args,
+          apps: _apps,
+          commands: _registry.commands,
+          now: _clock,
+        ),
+      );
+    } on Exception catch (error) {
+      if (_disposed) return;
+      _append(LogKind.error, Messages.commandFailed(error));
+      notifyListeners();
+      return;
+    }
+    if (_disposed) return;
+
+    switch (result) {
+      case CommandOutput(:final lines):
+        for (final line in lines) {
+          _append(LogKind.output, line);
+        }
+      case CommandFailure(:final lines):
+        for (final line in lines) {
+          _append(LogKind.error, line);
+        }
+      case CommandClear():
+        _lines.clear();
+    }
+    notifyListeners();
+  }
+
+  /// Completions for [input] as typed so far. Never throws: if the app list
+  /// cannot be loaded, argument suggestions are simply empty.
+  Future<List<Suggestion>> suggest(String input) async {
+    if (input.trim().isEmpty) return const [];
+    List<AppInfo> apps;
+    try {
+      apps = await _apps.listApps();
+    } on Exception {
+      apps = const [];
+    }
+    return _suggester.suggest(input, commands: _registry.commands, apps: apps);
+  }
+
+  void _append(LogKind kind, String text) {
+    _lines.add(LogLine(id: _nextId++, kind: kind, text: text));
+    if (_lines.length > _maxLines) {
+      _lines.removeRange(0, _lines.length - _maxLines);
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+}
