@@ -6,13 +6,14 @@ Later phases (aliases, quotes, `&&` chains, history, macros) must be additive, *
 ## Layers (dependency direction: UI → terminal → services → platform)
 
 ```
-android_terminal_launcher/lib/
+lib/
   main.dart                    # runApp only + DI wiring
   app.dart                     # MaterialApp, theme
   terminal/                    # pure Dart (see the foundation exception in Decisions)
     command.dart               # Command, CommandContext
     command_result.dart        # CommandResult (sealed): output / failure / clear
-    command_registry.dart      # register / lookup by name + alias
+    command_registry.dart      # register / lookup by name + alias; fromProviders
+    command_provider.dart      # CommandProvider: a named group of commands + its service
     tokenizer.dart             # String -> ParsedInput (parsed_input.dart)
     app_matcher.dart           # matchApps (open) + rankApps (suggestions)
     suggester.dart             # input line -> List<Suggestion>; suggestion.dart
@@ -31,7 +32,7 @@ android_terminal_launcher/lib/
     suggestion_bar.dart        # tappable strip above the prompt
     theme.dart
   messages.dart                # user-facing strings
-android_terminal_launcher/test/  # mirrors lib/; fakes/ holds FakeAppRepository
+test/  # mirrors lib/; fakes/ holds FakeAppRepository
 ```
 
 ## Rules
@@ -46,10 +47,18 @@ android_terminal_launcher/test/  # mirrors lib/; fakes/ holds FakeAppRepository
 9. Matching for `open <app>`: case-insensitive; exact name match wins, then prefix, then substring. If several match, list them and don't guess.
 
 ## Adding a command
-1. New file in `terminal/commands/`, register in the registry setup.
+1. New file in `terminal/commands/`, added to a provider's `commands` list (see below).
 2. Unit test in `test/terminal/commands/`.
 3. Verify it shows up in `help` with usage text.
 No changes to tokenizer, session, or UI should be needed. If they are, the abstraction is leaking; fix that first.
+
+## Adding a feature (provider)
+A feature that needs its own service (notes, calendar, weather, …) is a `CommandProvider`:
+1. Define the service as an abstract interface in `services/` (implementation in its own file, fake in `test/fakes/`).
+2. `XProvider(this._service)` implements `CommandProvider`; its `commands` close over the service. Commands stay data plus a function and still return `CommandResult`s.
+3. Add it to `defaultProviders` or, when it needs a service built in `main.dart`, to the list passed to `CommandRegistry.fromProviders` there.
+4. Test the commands with the fake service; the registry rejects name clashes across providers, so a clash fails at startup.
+`CommandContext` does not get a field per feature.
 
 ## Decisions log
 Record decisions that future agents can't derive from code (append, newest last):
@@ -64,3 +73,6 @@ Record decisions that future agents can't derive from code (append, newest last)
 - The log is a `reverse: true` `ListView`, which pins it to the newest line without a `ScrollController`.
 - Suggestions fill the input, never run it, so args can be added first. Command names are suggested by the `Suggester`; arguments come from the command's own optional `argSuggestions`, so the suggester never special-cases a command. A new command that wants argument suggestions sets that field.
 - Font: JetBrains Mono (Regular + Bold, OFL) bundled under `fonts/`; family name `JetBrainsMono`. No runtime font downloads.
+- `TerminalSession` never lets a command or suggester failure escape: `submit` catches `Object` (so `Error`s too) and logs an error line; `suggest` returns nothing on failure. After a failed app-list load, `suggest` skips the platform for 5 s (injectable clock) rather than re-querying on every keystroke; the first success clears it.
+- Quoting lives entirely in `Tokenizer`. A word opens a quote (`"` or `'`) only at its start, so a mid-word apostrophe (`open McDonald's`) stays literal and needs no quoting. An unclosed quote sets `ParsedInput.hasUnterminatedQuote` and the session prints an error instead of running a guess. `Suggester` still works on the raw line and offers unquoted completions, which `open`/`uninstall` accept because they join args with spaces.
+- Providers, not context fields: a feature's service is captured by its commands' closures. `CommandContext` keeps only what every command or the suggester needs (`apps`, `commands`, `now`, `args`). The built-in commands are grouped as `SystemProvider` and `AppsProvider` (stateless, const); `defaultCommands` is derived from `defaultProviders`. Moving `apps` out of the context into `AppsProvider` was left for later because the suggester needs the app list too.

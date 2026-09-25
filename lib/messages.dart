@@ -9,6 +9,7 @@ abstract final class Messages {
   static const noApps = 'no apps found';
   static const openUsage = 'usage: open <app>';
   static const uninstallUsage = 'usage: uninstall <app>';
+  static const unterminatedQuote = 'unterminated quote';
 
   static String uninstallStarted(String label) =>
       'asked Android to uninstall $label; confirm on screen, then run refresh';

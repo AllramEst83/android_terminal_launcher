@@ -24,7 +24,7 @@ void main() {
 
   // Lives for the whole process, so it is never disposed.
   final session = TerminalSession(
-    registry: CommandRegistry(defaultCommands),
+    registry: CommandRegistry.fromProviders(defaultProviders),
     apps: AndroidAppRepository(ownPackage: _appId),
     banner: [Messages.welcome],
   );

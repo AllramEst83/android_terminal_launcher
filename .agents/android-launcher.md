@@ -1,6 +1,6 @@
 # Android launcher specifics
 
-Paths are relative to `android_terminal_launcher/` (the Flutter project, one level below the workspace root).
+Paths are relative to the repo root, which is the Flutter project.
 Application id: `com.codedbykay.android_terminal_launcher`.
 
 ## Becoming a launcher

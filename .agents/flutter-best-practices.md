@@ -1,6 +1,6 @@
 # Flutter & Dart best practices
 
-Toolchain: Flutter 3.47 / Dart ^3.13 (see `android_terminal_launcher/pubspec.yaml`). Dot shorthands
+Toolchain: Flutter 3.47 / Dart ^3.13 (see `pubspec.yaml`). Dot shorthands
 (`.fromSeed(...)`, `.center`) are enabled and used by the template; use them where the type is obvious from context.
 
 ## Language
@@ -45,7 +45,7 @@ Toolchain: Flutter 3.47 / Dart ^3.13 (see `android_terminal_launcher/pubspec.yam
 - Follow the surrounding code's naming and comment density. Files `snake_case.dart`, one primary public type per file.
 - Imports: `package:` imports for `lib/` code (no relative `../..` climbing); relative imports only within the same feature folder.
 - Keep files under ~300 lines; split when a file does two jobs.
-- Recommended extra lints (enable in `android_terminal_launcher/analysis_options.yaml`): `prefer_single_quotes`, `always_declare_return_types`, `avoid_print`, `unawaited_futures`, `use_build_context_synchronously`, `prefer_final_locals`, `require_trailing_commas`, `directives_ordering`.
+- Recommended extra lints (enable in `analysis_options.yaml`): `prefer_single_quotes`, `always_declare_return_types`, `avoid_print`, `unawaited_futures`, `use_build_context_synchronously`, `prefer_final_locals`, `require_trailing_commas`, `directives_ordering`.
 
 ## Accessibility & i18n
 - Give interactive/visual elements `Semantics` where the default is insufficient. Keep contrast high (green/white on black is fine).

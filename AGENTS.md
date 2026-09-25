@@ -4,8 +4,7 @@ Terminal-style Android launcher built with Flutter. The whole home screen is a t
 Later: aliases, quoted args, `&&` chains, history, macros.
 
 ## Layout
-- Workspace root (this dir): `plan.md`, `AGENTS.md`, `CLAUDE.md`, `.agents/`
-- Flutter project: `android_terminal_launcher/` — **run all `flutter`/`dart` commands there**
+- Repo root (this dir) is the Flutter project: `lib/`, `test/`, `android/`, `pubspec.yaml`, plus `plan.md`, `AGENTS.md`, `CLAUDE.md`, `.agents/` — **run all `flutter`/`dart` commands here**
 - Android app id: `com.codedbykay.android_terminal_launcher`
 
 ## Read before working

@@ -1,6 +1,6 @@
 # Testing & quality
 
-Run all Flutter commands from `android_terminal_launcher/`.
+Run all Flutter commands from the repo root.
 
 ## Definition of done
 Before saying work is complete, run and report results of:

@@ -3,6 +3,7 @@ import 'package:android_terminal_launcher/services/app_info.dart';
 import 'package:android_terminal_launcher/services/app_repository_exception.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
+import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/log_line.dart';
 import 'package:android_terminal_launcher/terminal/terminal_session.dart';
@@ -15,12 +16,14 @@ TerminalSession _session(
   int maxLines = 500,
   List<String> banner = const [],
   Iterable<Command>? commands,
+  DateTime Function()? clock,
 }) {
   final session = TerminalSession(
     registry: CommandRegistry(commands ?? defaultCommands),
     apps: apps,
     maxLines: maxLines,
     banner: banner,
+    clock: clock ?? systemNow,
   );
   addTearDown(session.dispose);
   return session;
@@ -161,6 +164,49 @@ void main() {
     expect(session.lines.last.text, Messages.refreshed(1));
   });
 
+  test('an unterminated quote prints an error and runs nothing', () async {
+    final apps = FakeAppRepository(
+      apps: const [AppInfo(label: 'Firefox', packageName: 'ff')],
+    );
+    final session = _session(apps);
+
+    await session.submit('open "fire');
+
+    expect(session.lines.last.text, Messages.unterminatedQuote);
+    expect(session.lines.last.kind, LogKind.error);
+    expect(apps.launched, isEmpty);
+  });
+
+  test('a quoted app name opens that app', () async {
+    final apps = FakeAppRepository(
+      apps: const [AppInfo(label: 'Google Chrome', packageName: 'chrome')],
+    );
+    final session = _session(apps);
+
+    await session.submit('open "Google Chrome"');
+
+    expect(apps.launched, ['chrome']);
+  });
+
+  test('a command that throws an Error also becomes an error line', () async {
+    final session = _session(
+      FakeAppRepository(),
+      commands: [
+        Command(
+          name: 'boom',
+          description: 'always fails',
+          usage: 'boom',
+          run: (context) async => throw StateError('bad state'),
+        ),
+      ],
+    );
+
+    await session.submit('boom');
+
+    expect(session.lines.last.kind, LogKind.error);
+    expect(session.lines.last.text, contains('bad state'));
+  });
+
   group('suggest', () {
     test('offers command names and installed apps', () async {
       final session = _session(
@@ -190,6 +236,59 @@ void main() {
 
       expect(await session.suggest('cl'), isNotEmpty);
       expect(await session.suggest('open '), isEmpty);
+    });
+
+    test('does not re-query a failing app list on every keystroke', () async {
+      var now = DateTime(2026);
+      final apps = FakeAppRepository(
+        listError: const AppRepositoryException('boom'),
+      );
+      final session = _session(apps, clock: () => now);
+
+      await session.suggest('open ');
+      await session.suggest('open f');
+      await session.suggest('open fi');
+      expect(apps.listCalls, 1);
+
+      now = now.add(const Duration(seconds: 6));
+      await session.suggest('open fir');
+      expect(apps.listCalls, 2);
+    });
+
+    test('recovers as soon as the app list loads again', () async {
+      var now = DateTime(2026);
+      final apps = FakeAppRepository(
+        apps: const [AppInfo(label: 'Firefox', packageName: 'ff')],
+        listError: const AppRepositoryException('boom'),
+      );
+      final session = _session(apps, clock: () => now);
+      expect(await session.suggest('open f'), isEmpty);
+
+      apps.listError = null;
+      now = now.add(const Duration(seconds: 6));
+
+      expect((await session.suggest('open f')).map((s) => s.completion), [
+        'open Firefox',
+      ]);
+      // A success clears the failure, so the next call is not held back.
+      expect(await session.suggest('open fi'), isNotEmpty);
+    });
+
+    test('still returns nothing when a command suggester throws', () async {
+      final session = _session(
+        FakeAppRepository(),
+        commands: [
+          Command(
+            name: 'bad',
+            description: 'broken suggester',
+            usage: 'bad <x>',
+            run: (context) async => const CommandOutput(['ok']),
+            argSuggestions: (partial, apps) => throw StateError('nope'),
+          ),
+        ],
+      );
+
+      expect(await session.suggest('bad x'), isEmpty);
     });
 
     test('does not touch the log', () async {

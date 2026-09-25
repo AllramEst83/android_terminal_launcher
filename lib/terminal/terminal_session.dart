@@ -23,6 +23,7 @@ class TerminalSession extends ChangeNotifier {
     this._maxLines = 500,
     this._clock = systemNow,
     this._suggester = const Suggester(),
+    this._suggestRetryDelay = const Duration(seconds: 5),
     List<String> banner = const [],
   }) {
     for (final line in banner) {
@@ -36,11 +37,13 @@ class TerminalSession extends ChangeNotifier {
   final int _maxLines;
   final DateTime Function() _clock;
   final Suggester _suggester;
+  final Duration _suggestRetryDelay;
 
   final List<LogLine> _lines = [];
   late final UnmodifiableListView<LogLine> lines = UnmodifiableListView(_lines);
   int _nextId = 0;
   bool _disposed = false;
+  DateTime? _appListFailedAt;
 
   Future<void> submit(String input) async {
     final trimmed = input.trim();
@@ -48,6 +51,11 @@ class TerminalSession extends ChangeNotifier {
 
     _append(LogKind.input, '${Messages.prompt}$trimmed');
     final parsed = _tokenizer.tokenize(trimmed);
+    if (parsed.hasUnterminatedQuote) {
+      _append(LogKind.error, Messages.unterminatedQuote);
+      notifyListeners();
+      return;
+    }
     final command = _registry.lookup(parsed.command);
     if (command == null) {
       _append(LogKind.error, Messages.unknownCommand(parsed.command));
@@ -65,7 +73,9 @@ class TerminalSession extends ChangeNotifier {
           now: _clock,
         ),
       );
-    } on Exception catch (error) {
+    } on Object catch (error) {
+      // Errors too, not just Exceptions: a buggy command must print a line
+      // rather than escape as an unhandled error from the unawaited submit.
       if (_disposed) return;
       _append(LogKind.error, Messages.commandFailed(error));
       notifyListeners();
@@ -92,13 +102,34 @@ class TerminalSession extends ChangeNotifier {
   /// cannot be loaded, argument suggestions are simply empty.
   Future<List<Suggestion>> suggest(String input) async {
     if (input.trim().isEmpty) return const [];
-    List<AppInfo> apps;
+    final apps = await _appsForSuggestions();
     try {
-      apps = await _apps.listApps();
-    } on Exception {
-      apps = const [];
+      return _suggester.suggest(
+        input,
+        commands: _registry.commands,
+        apps: apps,
+      );
+    } on Object {
+      return const [];
     }
-    return _suggester.suggest(input, commands: _registry.commands, apps: apps);
+  }
+
+  /// Suggestions run on every keystroke, so after a failed load the platform
+  /// is left alone for [_suggestRetryDelay] instead of being queried again.
+  Future<List<AppInfo>> _appsForSuggestions() async {
+    final failedAt = _appListFailedAt;
+    if (failedAt != null &&
+        _clock().difference(failedAt) < _suggestRetryDelay) {
+      return const [];
+    }
+    try {
+      final apps = await _apps.listApps();
+      _appListFailedAt = null;
+      return apps;
+    } on Object {
+      _appListFailedAt = _clock();
+      return const [];
+    }
   }
 
   void _append(LogKind kind, String text) {

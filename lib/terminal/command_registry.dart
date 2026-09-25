@@ -1,9 +1,27 @@
 import 'package:android_terminal_launcher/terminal/command.dart';
+import 'package:android_terminal_launcher/terminal/command_provider.dart';
 
 /// Looks commands up by name or alias, case-insensitively.
 class CommandRegistry {
   CommandRegistry([Iterable<Command> commands = const []]) {
     commands.forEach(register);
+  }
+
+  /// Registers every command of every provider. Throws [ArgumentError] if two
+  /// providers (or one provider twice) claim the same name or alias; the message
+  /// starts with the name of the provider that clashed.
+  factory CommandRegistry.fromProviders(Iterable<CommandProvider> providers) {
+    final registry = CommandRegistry();
+    for (final provider in providers) {
+      for (final command in provider.commands) {
+        try {
+          registry.register(command);
+        } on ArgumentError catch (error) {
+          throw ArgumentError('${provider.name}: ${error.message}');
+        }
+      }
+    }
+    return registry;
   }
 
   final Map<String, Command> _byKey = {};
