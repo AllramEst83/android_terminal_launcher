@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:android_terminal_launcher/services/entry_store.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
 import 'package:android_terminal_launcher/terminal/commands/commands.dart';
@@ -82,8 +84,9 @@ void main() {
     ]);
     await session.submit('note');
 
+    // A rich list is one log entry holding its lines, so read them apart.
     final listed = session.lines
-        .map((l) => l.text)
+        .expand((l) => const LineSplitter().convert(l.text))
         .where((t) => RegExp(r'^\s*\d+  item').hasMatch(t))
         .toList();
     expect(listed, hasLength(10));

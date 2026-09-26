@@ -2,10 +2,12 @@ import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/app_info.dart';
 import 'package:android_terminal_launcher/services/currency_rates.dart';
 import 'package:android_terminal_launcher/services/network_exception.dart';
+import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/number_format.dart';
 import 'package:android_terminal_launcher/terminal/tools/expression.dart';
+import 'package:android_terminal_launcher/terminal/tools/quote.dart';
 import 'package:android_terminal_launcher/terminal/tools/units.dart';
 
 /// `convert 5 km mi`, or `convert 5 km to mi`, and money too: `convert 100 usd
@@ -41,7 +43,7 @@ Future<CommandResult> _convert(
   if (args.length == 1) {
     switch (args.first.toLowerCase()) {
       case 'units':
-        return CommandOutput(_unitLines());
+        return CommandOutput(_unitLines(), block: _unitChoices());
       case 'currencies':
         return _currencies(rates);
     }
@@ -71,10 +73,14 @@ Future<CommandResult> _convert(
   }
   final result = convertUnits(value, from, to);
   if (!result.isFinite) return _fail(Messages.exprTooLarge);
-  return CommandOutput([
-    '${formatNumber(value)} ${args[1]} = '
-        '${formatNumber(result, significant: _resultDigits)} ${args[2]}',
-  ]);
+  final shown = formatNumber(result, significant: _resultDigits);
+  return CommandOutput(
+    ['${formatNumber(value)} ${args[1]} = $shown ${args[2]}'],
+    block: ResultBlock(
+      expression: '${formatNumber(value)} ${args[1]}',
+      value: '$shown ${args[2]}',
+    ),
+  );
 }
 
 Future<CommandResult> _money(CurrencyRates rates, List<String> args) async {
@@ -95,11 +101,17 @@ Future<CommandResult> _money(CurrencyRates rates, List<String> args) async {
   }
   final result = current.convert(value, args[1], args[2]);
   if (!result.isFinite) return _fail(Messages.exprTooLarge);
-  return CommandOutput([
-    '${formatNumber(value)} ${args[1].toUpperCase()} = '
-        '${_amount(result)} ${args[2].toUpperCase()}',
-    Messages.rateNote(current.day, stale: current.stale),
-  ]);
+  final note = Messages.rateNote(current.day, stale: current.stale);
+  final from = args[1].toUpperCase();
+  final to = args[2].toUpperCase();
+  return CommandOutput(
+    ['${formatNumber(value)} $from = ${_amount(result)} $to', note],
+    block: ResultBlock(
+      expression: '${formatNumber(value)} $from',
+      value: '${_amount(result)} $to',
+      details: [note],
+    ),
+  );
 }
 
 Future<CommandResult> _currencies(CurrencyRates rates) async {
@@ -109,10 +121,27 @@ Future<CommandResult> _currencies(CurrencyRates rates) async {
   } on NetworkException catch (error) {
     return _fail(error.message);
   }
-  return CommandOutput([
-    ..._rows(current.codes),
-    Messages.rateNote(current.day, stale: current.stale),
-  ]);
+  final note = Messages.rateNote(current.day, stale: current.stale);
+  return CommandOutput(
+    [..._rows(current.codes), note],
+    block: ChoiceBlock(
+      title: 'currencies',
+      footer: note,
+      groups: [
+        ChoiceGroup(
+          options: [
+            for (final code in current.codes)
+              // Fills, so the amount and the other currency can be typed.
+              ChoiceOption(
+                label: code,
+                fill: true,
+                command: 'convert 1 ${quoteArg(code.toLowerCase())} ',
+              ),
+          ],
+        ),
+      ],
+    ),
+  );
 }
 
 /// Cents for everyday amounts, significant digits for tiny ones.
@@ -134,6 +163,25 @@ List<String> _withoutConnector(List<String> args) {
   }
   return args;
 }
+
+/// The units by kind; a tap fills `convert 1 <unit> ` for the rest to be typed.
+ChoiceBlock _unitChoices() => ChoiceBlock(
+  title: 'units',
+  groups: [
+    for (final kind in UnitKind.values)
+      ChoiceGroup(
+        title: kind.name,
+        options: [
+          for (final unit in allUnits.where((u) => u.kind == kind))
+            ChoiceOption(
+              label: unit.symbol,
+              fill: true,
+              command: 'convert 1 ${quoteArg(unit.symbol)} ',
+            ),
+        ],
+      ),
+  ],
+);
 
 List<String> _unitLines() {
   final width = UnitKind.values.map((k) => k.name.length).reduce(_max);

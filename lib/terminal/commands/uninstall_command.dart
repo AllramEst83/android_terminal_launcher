@@ -1,7 +1,9 @@
 import 'package:android_terminal_launcher/messages.dart';
+import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/commands/resolve_app.dart';
+import 'package:android_terminal_launcher/terminal/tools/notice.dart';
 
 /// Android never lets an app remove another silently: this opens the system's
 /// own confirmation dialog, which is the user's chance to back out.
@@ -19,6 +21,8 @@ Future<CommandResult> _uninstall(CommandContext context) async {
   final resolution = await resolveApp(
     context,
     usageMessage: Messages.uninstallUsage,
+    pickCommand: 'uninstall',
+    fillPick: true,
   );
   switch (resolution) {
     case UnresolvedApp(:final failure):
@@ -28,6 +32,9 @@ Future<CommandResult> _uninstall(CommandContext context) async {
       if (!started) {
         return CommandFailure.single(Messages.uninstallFailed(app.label));
       }
-      return CommandOutput([Messages.uninstallStarted(app.label)]);
+      return noticeOutput(
+        Messages.uninstallStarted(app.label),
+        kind: NoticeKind.info,
+      );
   }
 }

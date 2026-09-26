@@ -2,6 +2,7 @@ import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/commands/resolve_app.dart';
+import 'package:android_terminal_launcher/terminal/tools/notice.dart';
 
 final openCommand = Command(
   name: 'open',
@@ -17,6 +18,7 @@ Future<CommandResult> _open(CommandContext context) async {
   final resolution = await resolveApp(
     context,
     usageMessage: Messages.openUsage,
+    pickCommand: 'open',
   );
   switch (resolution) {
     case UnresolvedApp(:final failure):
@@ -26,6 +28,6 @@ Future<CommandResult> _open(CommandContext context) async {
       if (!launched) {
         return CommandFailure.single(Messages.launchFailed(app.label));
       }
-      return CommandOutput([Messages.opening(app.label)]);
+      return noticeOutput(Messages.opening(app.label));
   }
 }

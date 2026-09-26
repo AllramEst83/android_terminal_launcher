@@ -4,7 +4,10 @@
 enum ThemeChoice {
   dark('phosphor green on black'),
   light('navy on silver'),
-  coffee('latte on espresso');
+  coffee('latte on espresso'),
+  unicorn('pink on indigo'),
+  pastel('raspberry on pink'),
+  cyberpunk('neon cyan on night');
 
   const ThemeChoice(this.description);
 

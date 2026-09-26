@@ -66,12 +66,12 @@ void main() {
     expect(themeFor(ThemeChoice.dark).scaffoldBackgroundColor, Colors.black);
   });
 
-  test('light is the only light theme', () {
+  test('only light and pastel are light themes', () {
     expect(
       ThemeChoice.values.where(
         (c) => themeFor(c).brightness == Brightness.light,
       ),
-      [ThemeChoice.light],
+      [ThemeChoice.light, ThemeChoice.pastel],
     );
   });
 }

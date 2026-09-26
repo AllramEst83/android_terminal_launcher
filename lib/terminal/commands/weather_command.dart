@@ -1,18 +1,23 @@
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/app_info.dart';
 import 'package:android_terminal_launcher/services/local_store_exception.dart';
+import 'package:android_terminal_launcher/services/location_service.dart';
 import 'package:android_terminal_launcher/services/network_exception.dart';
 import 'package:android_terminal_launcher/services/weather.dart';
+import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
-import 'package:android_terminal_launcher/terminal/number_format.dart';
+import 'package:android_terminal_launcher/terminal/commands/plain_flag.dart';
+import 'package:android_terminal_launcher/terminal/tools/notice.dart';
+import 'package:android_terminal_launcher/terminal/tools/weather_blocks.dart';
 import 'package:android_terminal_launcher/terminal/tools/weather_text.dart';
 
 const _weekdays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-/// `weather <city>` for a place, `weather` for the saved home city, and
-/// `weather home [<city>|clear]` to see, set or forget it.
-Command weatherCommand(Weather weather) => Command(
+/// `weather <city>` for a place, `weather` for where the phone is (the saved
+/// home city when there is no position), and `weather home [<city>|clear]` to
+/// see, set or forget that city.
+Command weatherCommand(Weather weather, LocationService location) => Command(
   name: 'weather',
   description: 'Show the weather',
   usage: 'weather [city]',
@@ -24,8 +29,13 @@ Command weatherCommand(Weather weather) => Command(
     'weather home clear',
   ],
   examples: ['weather gothenburg', 'weather home malmö', 'weather'],
-  notes: ['with no city, uses your home city', 'data from open-meteo.com'],
-  run: (context) => _weather(weather, context.args),
+  notes: [
+    'with no city, uses your location',
+    'or your home city, if it fails',
+    '--plain: text only, this once',
+    'data from open-meteo.com',
+  ],
+  run: (context) => _weather(weather, location, context.args),
   argSuggestions: _suggestArgs,
 );
 
@@ -47,16 +57,37 @@ List<String> _matching(String typed, List<String> options) => [
     if (option.startsWith(typed.toLowerCase())) option,
 ];
 
-Future<CommandResult> _weather(Weather weather, List<String> args) async {
+Future<CommandResult> _weather(
+  Weather weather,
+  LocationService location,
+  List<String> allArgs,
+) async {
+  final (:args, :plain) = splitPlainFlag(allArgs);
   try {
     if (args.isNotEmpty && args.first.toLowerCase() == 'home') {
       return await _home(weather, args.sublist(1));
     }
     final Place place;
+    // Set when the forecast is for something other than what was asked for.
+    String? note;
     if (args.isEmpty) {
-      final home = await weather.home();
-      if (home == null) return const CommandFailure([Messages.weatherNoHome]);
-      place = home;
+      final here = await location.current();
+      if (here is LocationFound) {
+        place = Place(
+          name:
+              here.name ?? Messages.weatherHere(here.latitude, here.longitude),
+          region: here.name == null ? null : here.region,
+          country: here.name == null ? null : here.country,
+          latitude: here.latitude,
+          longitude: here.longitude,
+        );
+      } else {
+        // Where the phone is is unknown; a saved home city is the next best.
+        final home = await weather.home();
+        if (home == null) return CommandFailure(_whyNoLocation(here));
+        place = home;
+        note = Messages.weatherUsingHome;
+      }
     } else {
       final query = args.join(' ');
       final found = await weather.find(query);
@@ -65,7 +96,11 @@ Future<CommandResult> _weather(Weather weather, List<String> args) async {
       }
       place = found;
     }
-    return CommandOutput(_report(await weather.forecast(place)));
+    final forecast = await weather.forecast(place);
+    return CommandOutput([
+      ?note,
+      ..._report(forecast),
+    ], block: plain ? null : weatherBlock(forecast, note: note));
   } on NetworkException catch (error) {
     return CommandFailure.single(Messages.weatherError(error.message));
   } on LocalStoreException catch (error) {
@@ -73,16 +108,38 @@ Future<CommandResult> _weather(Weather weather, List<String> args) async {
   }
 }
 
+/// What to tell the user when there is no position and no home city either.
+List<String> _whyNoLocation(LocationResult result) => switch (result) {
+  LocationDenied(permanent: false) => [
+    Messages.permissionDenied(Messages.weatherLocation),
+    Messages.weatherTryCity,
+    Messages.weatherSaveHome,
+  ],
+  LocationDenied(permanent: true) => [
+    Messages.permissionOff(Messages.weatherLocation),
+    ...Messages.permissionHowToGrant,
+    Messages.weatherTryCity,
+    Messages.weatherSaveHome,
+  ],
+  LocationUnavailable(:final reason) => [
+    reason,
+    Messages.weatherTryCity,
+    Messages.weatherSaveHome,
+  ],
+  LocationFound() => const [],
+};
+
 Future<CommandResult> _home(Weather weather, List<String> args) async {
   if (args.isEmpty) {
     final home = await weather.home();
-    return CommandOutput([
+    return noticeOutput(
       home == null ? Messages.weatherNoHome : Messages.weatherHome(home.label),
-    ]);
+      kind: NoticeKind.info,
+    );
   }
   if (args.length == 1 && args.first.toLowerCase() == 'clear') {
     await weather.clearHome();
-    return const CommandOutput([Messages.weatherHomeCleared]);
+    return noticeOutput(Messages.weatherHomeCleared);
   }
   final query = args.join(' ');
   final place = await weather.find(query);
@@ -90,7 +147,7 @@ Future<CommandResult> _home(Weather weather, List<String> args) async {
     return CommandFailure.single(Messages.weatherNoPlace(query));
   }
   await weather.setHome(place);
-  return CommandOutput([Messages.weatherHomeSet(place.label)]);
+  return noticeOutput(Messages.weatherHomeSet(place.label));
 }
 
 /// Short lines, all under about 36 characters, so nothing wraps on a phone
@@ -101,11 +158,11 @@ List<String> _report(Forecast forecast) {
     forecast.place.label,
     Messages.weatherNow(
       describeWeather(now.code),
-      '${_whole(now.temperature)}°C',
-      '${_whole(now.feelsLike)}°',
+      '${wholeNumber(now.temperature)}°C',
+      '${wholeNumber(now.feelsLike)}°',
     ),
     Messages.weatherWind(
-      _tenths(now.windSpeed),
+      oneDecimal(now.windSpeed),
       compassPoint(now.windDirection),
       now.humidity,
     ),
@@ -117,14 +174,8 @@ List<String> _report(Forecast forecast) {
 String _day(DayForecast day, bool today) {
   final name = today ? Messages.weatherToday : _weekdays[day.date.weekday - 1];
   final rain = day.precipitation >= 0.1
-      ? ' ${_tenths(day.precipitation)}mm'
+      ? ' ${oneDecimal(day.precipitation)}mm'
       : '';
-  return '${name.padRight(5)} ${_whole(day.low)}/${_whole(day.high)}° '
+  return '${name.padRight(5)} ${wholeNumber(day.low)}/${wholeNumber(day.high)}° '
       '${describeWeather(day.code)}$rain';
 }
-
-/// 15.5 -> 16, -0.4 -> 0.
-String _whole(double value) => formatNumber(value.roundToDouble());
-
-/// 4.62 -> 4.6, 3.0 -> 3.
-String _tenths(double value) => formatNumber((value * 10).roundToDouble() / 10);

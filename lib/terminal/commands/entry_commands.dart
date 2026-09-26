@@ -2,8 +2,11 @@ import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/entry.dart';
 import 'package:android_terminal_launcher/services/entry_store.dart';
 import 'package:android_terminal_launcher/services/local_store_exception.dart';
+import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
+import 'package:android_terminal_launcher/terminal/tools/entry_blocks.dart';
+import 'package:android_terminal_launcher/terminal/tools/notice.dart';
 
 /// `note` and `todo` are the same numbered list with different words. This
 /// file holds both; [_Kind] carries the differences.
@@ -141,14 +144,17 @@ Future<CommandResult> _run(
 Future<CommandResult> _list(_Kind kind, EntryStore store) async {
   final entries = await store.all();
   if (entries.isEmpty) {
-    return CommandOutput([Messages.noEntries(kind.plural, kind.name)]);
+    return noticeOutput(
+      Messages.noEntries(kind.plural, kind.name),
+      kind: NoticeKind.info,
+    );
   }
-  return CommandOutput(_rows(kind, entries));
+  return _listing(kind, entries, _count(kind, entries.length));
 }
 
 Future<CommandResult> _add(_Kind kind, EntryStore store, String text) async {
   final entry = await store.add(text);
-  return CommandOutput([Messages.entryAdded(kind.name, entry.id)]);
+  return noticeOutput(Messages.entryAdded(kind.name, entry.id));
 }
 
 Future<CommandResult> _show(_Kind kind, EntryStore store, String rawId) async {
@@ -163,7 +169,17 @@ Future<CommandResult> _show(_Kind kind, EntryStore store, String rawId) async {
     'created ${_stamp(entry.createdAt)}',
     if (entry.updatedAt != entry.createdAt) 'edited ${_stamp(entry.updatedAt)}',
   ];
-  return CommandOutput([entry.text, '  ${meta.join(' · ')}']);
+  return CommandOutput(
+    [entry.text, '  ${meta.join(' · ')}'],
+    block: entryDetailBlock(
+      kind: kind.name,
+      entry: entry,
+      created: _stamp(entry.createdAt),
+      edited: entry.updatedAt != entry.createdAt
+          ? _stamp(entry.updatedAt)
+          : null,
+    ),
+  );
 }
 
 Future<CommandResult> _edit(
@@ -176,7 +192,7 @@ Future<CommandResult> _edit(
   if (id == null) return _badId(rawId);
   final updated = await store.update(id, text: text);
   if (updated == null) return _missing(kind, id);
-  return CommandOutput([Messages.entryUpdated(kind.name, id)]);
+  return noticeOutput(Messages.entryUpdated(kind.name, id));
 }
 
 Future<CommandResult> _remove(
@@ -188,7 +204,7 @@ Future<CommandResult> _remove(
   if (id == null) return _badId(rawId);
   final removed = await store.remove(id);
   if (removed == null) return _missing(kind, id);
-  return CommandOutput([Messages.entryRemoved(kind.name, id, removed.text)]);
+  return noticeOutput(Messages.entryRemoved(kind.name, id, removed.text));
 }
 
 Future<CommandResult> _find(_Kind kind, EntryStore store, String query) async {
@@ -200,7 +216,7 @@ Future<CommandResult> _find(_Kind kind, EntryStore store, String query) async {
   if (matches.isEmpty) {
     return CommandFailure.single(Messages.entryNoMatches(kind.plural, query));
   }
-  return CommandOutput(_rows(kind, matches));
+  return _listing(kind, matches, Messages.entryMatches(matches.length, query));
 }
 
 Future<CommandResult> _mark(
@@ -213,13 +229,24 @@ Future<CommandResult> _mark(
   if (id == null) return _badId(rawId);
   final updated = await store.update(id, done: done);
   if (updated == null) return _missing(kind, id);
-  return CommandOutput([Messages.todoMarked(id, done: done)]);
+  return noticeOutput(Messages.todoMarked(id, done: done));
 }
 
 Future<CommandResult> _clear(EntryStore store) async {
   final removed = await store.removeWhere((entry) => entry.done);
-  return CommandOutput([Messages.todosCleared(removed)]);
+  return noticeOutput(Messages.todosCleared(removed));
 }
+
+/// `3 notes`, `1 todo`.
+String _count(_Kind kind, int count) =>
+    '$count ${count == 1 ? kind.name : kind.plural}';
+
+/// The rows as text, and as a card with the same [title].
+CommandOutput _listing(_Kind kind, List<Entry> entries, String title) =>
+    CommandOutput(
+      _rows(kind, entries),
+      block: entriesBlock(kind: kind.name, title: title, entries: entries),
+    );
 
 /// Ids are right-aligned so text lines up; todos get a `[x]` / `[ ]` box.
 List<String> _rows(_Kind kind, List<Entry> entries) {

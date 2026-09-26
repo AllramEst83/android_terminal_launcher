@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/terminal/suggestion.dart';
+import 'package:android_terminal_launcher/ui/double_space_formatter.dart';
+import 'package:android_terminal_launcher/ui/prompt_filler.dart';
 import 'package:android_terminal_launcher/ui/suggestion_bar.dart';
 import 'package:flutter/material.dart';
 
@@ -12,10 +14,14 @@ class PromptInput extends StatefulWidget {
     super.key,
     required this.onSubmit,
     required this.onSuggest,
+    this.filler,
   });
 
   final Future<void> Function(String input) onSubmit;
   final Future<List<Suggestion>> Function(String input) onSuggest;
+
+  /// Lets buttons elsewhere on screen put a command in this prompt.
+  final PromptFiller? filler;
 
   @override
   State<PromptInput> createState() => _PromptInputState();
@@ -32,10 +38,21 @@ class _PromptInputState extends State<PromptInput> with WidgetsBindingObserver {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     _controller.addListener(_onControllerChanged);
+    widget.filler?.attach(_fill);
+  }
+
+  @override
+  void didUpdateWidget(PromptInput old) {
+    super.didUpdateWidget(old);
+    if (old.filler != widget.filler) {
+      old.filler?.detach(_fill);
+      widget.filler?.attach(_fill);
+    }
   }
 
   @override
   void dispose() {
+    widget.filler?.detach(_fill);
     WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_onControllerChanged);
     _controller.dispose();
@@ -66,10 +83,12 @@ class _PromptInputState extends State<PromptInput> with WidgetsBindingObserver {
 
   /// Fills the field rather than running anything, so the user can still edit
   /// the line or add arguments before pressing Enter.
-  void _select(Suggestion suggestion) {
+  void _select(Suggestion suggestion) => _fill(suggestion.completion);
+
+  void _fill(String text) {
     _controller.value = TextEditingValue(
-      text: suggestion.completion,
-      selection: .collapsed(offset: suggestion.completion.length),
+      text: text,
+      selection: .collapsed(offset: text.length),
     );
     _focusNode.requestFocus();
   }
@@ -103,6 +122,7 @@ class _PromptInputState extends State<PromptInput> with WidgetsBindingObserver {
                   enableSuggestions: false,
                   textCapitalization: TextCapitalization.none,
                   textInputAction: TextInputAction.done,
+                  inputFormatters: const [DoubleSpaceFormatter()],
                   style: style,
                   cursorColor: theme.colorScheme.primary,
                   cursorWidth: 8,

@@ -1,3 +1,6 @@
+import 'package:android_terminal_launcher/terminal/blocks.dart';
+import 'package:android_terminal_launcher/terminal/number_format.dart';
+
 /// Plain-words descriptions of WMO weather codes, as Open-Meteo reports them.
 /// Kept short: a forecast line has to fit a phone screen.
 const _descriptions = {
@@ -41,3 +44,23 @@ String compassPoint(int degrees) {
   final index = ((degrees % 360 + 360) % 360 + 22.5) ~/ 45;
   return _points[index % 8];
 }
+
+/// The picture that goes with [code]: what the sky looks like, however it is
+/// worded. A code not listed is taken for cloud, the safe middle.
+WeatherKind weatherKind(int code) => switch (code) {
+  0 || 1 => WeatherKind.clear,
+  2 => WeatherKind.partlyCloudy,
+  45 || 48 => WeatherKind.fog,
+  >= 51 && <= 57 => WeatherKind.drizzle,
+  >= 61 && <= 67 || >= 80 && <= 82 => WeatherKind.rain,
+  >= 71 && <= 77 || 85 || 86 => WeatherKind.snow,
+  >= 95 && <= 99 => WeatherKind.thunder,
+  _ => WeatherKind.cloudy,
+};
+
+/// 15.5 -> 16, -0.4 -> 0.
+String wholeNumber(double value) => formatNumber(value.roundToDouble());
+
+/// 4.62 -> 4.6, 3.0 -> 3.
+String oneDecimal(double value) =>
+    formatNumber((value * 10).roundToDouble() / 10);

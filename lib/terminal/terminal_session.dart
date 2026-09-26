@@ -3,6 +3,10 @@ import 'dart:collection';
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/app_info.dart';
 import 'package:android_terminal_launcher/services/app_repository.dart';
+import 'package:android_terminal_launcher/services/styled_text.dart';
+import 'package:android_terminal_launcher/services/view_mode.dart';
+import 'package:android_terminal_launcher/services/view_mode_settings.dart';
+import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
@@ -12,6 +16,8 @@ import 'package:android_terminal_launcher/terminal/suggestion.dart';
 import 'package:android_terminal_launcher/terminal/tokenizer.dart';
 // Only for ChangeNotifier; the terminal layer stays free of widgets/platform.
 import 'package:flutter/foundation.dart';
+
+const _newline = '\n';
 
 /// Owns the log and turns submitted lines into command runs. Widgets only
 /// render [lines] and forward input to [submit].
@@ -25,6 +31,7 @@ class TerminalSession extends ChangeNotifier {
     this._suggester = const Suggester(),
     this._suggestRetryDelay = const Duration(seconds: 5),
     this._banner = const [],
+    this._view,
   }) {
     _showBanner();
   }
@@ -40,6 +47,10 @@ class TerminalSession extends ChangeNotifier {
   /// Shown again after `clear`, not just at startup, so the screen never
   /// stays truly blank.
   final List<String> _banner;
+
+  /// Whether output keeps its rich form; null means it always does. Read as
+  /// each command finishes, so a change affects new output only.
+  final ViewModeSettings? _view;
 
   final List<LogLine> _lines = [];
   late final UnmodifiableListView<LogLine> lines = UnmodifiableListView(_lines);
@@ -65,6 +76,11 @@ class TerminalSession extends ChangeNotifier {
       return;
     }
 
+    // Show the command at once: a slow one (a network call) would otherwise
+    // leave the log changed but unannounced until it finished, and the list
+    // would build from a length it had not been told about.
+    notifyListeners();
+
     final CommandResult result;
     try {
       result = await command.run(
@@ -86,11 +102,26 @@ class TerminalSession extends ChangeNotifier {
     }
     if (_disposed) return;
 
+    final rich = (_view?.current ?? ViewMode.rich) == ViewMode.rich;
     switch (result) {
-      case CommandOutput(:final lines, :final columns):
-        for (final line in lines) {
-          _append(LogKind.output, line, columns: columns);
+      case CommandOutput(:final lines, :final block?) when rich:
+        // One entry stands for the whole block; its plain lines ride along as
+        // text (copying, tests) and are never drawn.
+        _append(LogKind.output, lines.join(_newline), block: block);
+      case CommandOutput(:final lines, :final columns, :final styles):
+        // Colours only in a rich view, and only when they line up with the
+        // lines one to one. Plain keeps the grid but not its colours.
+        final styled = rich && styles != null && styles.length == lines.length;
+        for (var i = 0; i < lines.length; i++) {
+          _append(
+            LogKind.output,
+            lines[i],
+            columns: columns,
+            runs: styled ? styles[i] : null,
+          );
         }
+      case CommandFailure(:final lines, :final block?) when rich:
+        _append(LogKind.error, lines.join(_newline), block: block);
       case CommandFailure(:final lines):
         for (final line in lines) {
           _append(LogKind.error, line);
@@ -142,9 +173,22 @@ class TerminalSession extends ChangeNotifier {
     }
   }
 
-  void _append(LogKind kind, String text, {int? columns}) {
+  void _append(
+    LogKind kind,
+    String text, {
+    int? columns,
+    List<StyledRun>? runs,
+    RichBlock? block,
+  }) {
     _lines.add(
-      LogLine(id: _nextId++, kind: kind, text: text, columns: columns),
+      LogLine(
+        id: _nextId++,
+        kind: kind,
+        text: text,
+        columns: columns,
+        runs: runs,
+        block: block,
+      ),
     );
     if (_lines.length > _maxLines) {
       _lines.removeRange(0, _lines.length - _maxLines);

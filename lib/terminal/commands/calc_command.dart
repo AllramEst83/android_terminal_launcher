@@ -1,4 +1,5 @@
 import 'package:android_terminal_launcher/messages.dart';
+import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/number_format.dart';
@@ -25,7 +26,10 @@ Future<CommandResult> _calc(CommandContext context) async {
   final source = context.args.join(' ');
   if (source.isEmpty) return const CommandFailure(Messages.calcUsage);
   try {
-    return CommandOutput(['= ${formatNumber(evaluateExpression(source))}']);
+    final answer = formatNumber(evaluateExpression(source));
+    return CommandOutput([
+      '= $answer',
+    ], block: ResultBlock(expression: source, value: answer));
   } on ExpressionException catch (error) {
     return CommandFailure.single(Messages.calcError(error.message));
   }

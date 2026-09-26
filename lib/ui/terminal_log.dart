@@ -1,6 +1,8 @@
 import 'package:android_terminal_launcher/terminal/log_line.dart';
 import 'package:android_terminal_launcher/terminal/terminal_session.dart';
 import 'package:android_terminal_launcher/ui/ascii_banner.dart';
+import 'package:android_terminal_launcher/ui/block_view.dart';
+import 'package:android_terminal_launcher/ui/tv_row.dart';
 import 'package:flutter/material.dart';
 
 /// Keys on the block markers, so tests can find them.
@@ -19,19 +21,27 @@ const gridUpscaleLimit = 1.75;
 /// each echoed input line, and the output under it carries a thin rule down its
 /// left edge. A [LogKind.banner] line (shown at startup and again after
 /// `clear`) renders as [AsciiBanner] instead, with none of that decoration. A
-/// fixed-width grid (Text TV, later a calendar) skips the rule too and runs
-/// edge to edge instead, like its own screen rather than indented app output.
+/// fixed-width grid (Text TV, the plain calendar) and a rich block (the
+/// calendar card) skip the rule too and run edge to edge instead, like their
+/// own screen rather than indented app output.
 class TerminalLog extends StatelessWidget {
-  const TerminalLog({super.key, required this.session});
+  const TerminalLog({super.key, required this.session, this.onFill});
 
   final TerminalSession session;
+
+  /// Puts a command in the prompt, for the buttons in a card that act on
+  /// someone (call, text) or need more typed. Without it they do nothing.
+  final void Function(String command)? onFill;
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: session,
       builder: (context, _) {
-        final lines = session.lines;
+        // A snapshot: the list builds children lazily, later than this build,
+        // and must see the log as it was when it was told about it, whatever
+        // the session does in between.
+        final lines = List<LogLine>.of(session.lines, growable: false);
         final firstInput = lines.indexWhere((l) => l.kind == LogKind.input);
         return ListView.builder(
           reverse: true,
@@ -52,6 +62,8 @@ class TerminalLog extends StatelessWidget {
             return _LogLineView(
               key: ValueKey(line.id),
               line: line,
+              onRun: session.submit,
+              onFill: onFill,
               startsBlock: line.kind == LogKind.input && position > 0,
               inBlock:
                   line.kind != LogKind.input &&
@@ -69,11 +81,19 @@ class _LogLineView extends StatelessWidget {
   const _LogLineView({
     super.key,
     required this.line,
+    required this.onRun,
+    required this.onFill,
     required this.startsBlock,
     required this.inBlock,
   });
 
   final LogLine line;
+
+  /// Runs a command a rich block asks for (a tapped day, an arrow).
+  final void Function(String command) onRun;
+
+  /// See [TerminalLog.onFill].
+  final void Function(String command)? onFill;
 
   /// An input line that follows earlier lines: draw the divider above it.
   final bool startsBlock;
@@ -83,6 +103,16 @@ class _LogLineView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A rich block is its own widget, edge to edge like a grid: no left rule.
+    final block = line.block;
+    if (block != null) {
+      return BlockView(
+        block: block,
+        onRun: onRun,
+        onFill: onFill ?? BlockView.ignore,
+      );
+    }
+
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final base = theme.textTheme.bodyLarge;
@@ -97,8 +127,11 @@ class _LogLineView extends StatelessWidget {
     final shown = line.text.isEmpty ? ' ' : line.text;
     final columns = line.columns;
     final isGrid = columns != null;
+    final runs = line.runs;
     final text = columns == null
         ? Text(shown, style: style)
+        : runs != null
+        ? TvRow(runs: runs, columns: columns, style: style, onRun: onRun)
         : _GridText(shown, style: style, columns: columns);
 
     if (startsBlock) {

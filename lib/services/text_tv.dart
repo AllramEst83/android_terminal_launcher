@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:android_terminal_launcher/services/http_fetcher.dart';
 import 'package:android_terminal_launcher/services/network_exception.dart';
+import 'package:android_terminal_launcher/services/styled_text.dart';
+import 'package:android_terminal_launcher/services/text_tv_html.dart';
 
 /// One page of Swedish Text TV as plain text. A page can be several [parts]
 /// (sub-pages), each a grid of up to [TextTv.columns] characters per line.
@@ -9,6 +11,7 @@ class TextTvPage {
   const TextTvPage({
     required this.number,
     required this.parts,
+    this.styledParts,
     this.previous,
     this.next,
   });
@@ -17,6 +20,12 @@ class TextTvPage {
 
   /// Sub-pages in reading order; each is its lines, right-trimmed.
   final List<List<String>> parts;
+
+  /// The same sub-pages with their colours, every row exactly
+  /// [TextTv.columns] wide (not trimmed: a coloured bar runs to the edge).
+  /// Null when the site sent no colours or they could not be read, in which
+  /// case [parts] is all there is. When set it has as many parts as [parts].
+  final List<List<List<StyledRun>>>? styledParts;
 
   /// Neighbouring page numbers, when the service says what they are.
   final int? previous;
@@ -70,9 +79,29 @@ class TextTv {
     return TextTvPage(
       number: number,
       parts: parts,
+      styledParts: _styled(page['content'], parts.length),
       previous: _pageNumber(page['prev_page']),
       next: _pageNumber(page['next_page']),
     );
+  }
+
+  /// The coloured version of every part, or null if any part cannot be read
+  /// (all or nothing, so a page is never half colour). The plain text stays
+  /// the source of truth.
+  List<List<List<StyledRun>>>? _styled(Object? content, int parts) {
+    if (content is! List || content.length != parts) return null;
+    final styled = <List<List<StyledRun>>>[];
+    for (final html in content) {
+      if (html is! String) return null;
+      final rows = parseTextTvHtml(
+        html,
+        columns: columns,
+        commandFor: (page) => 'texttv $page',
+      );
+      if (rows == null) return null;
+      styled.add(rows);
+    }
+    return styled;
   }
 
   /// A page that is not in broadcast comes back as one line saying so.

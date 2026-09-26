@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/network_exception.dart';
+import 'package:android_terminal_launcher/services/styled_text.dart';
 import 'package:android_terminal_launcher/services/text_tv.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
@@ -141,6 +142,80 @@ void main() {
       );
 
       expect(_lines(await rig.run(['130'])), ['only']);
+    });
+  });
+
+  group('colours', () {
+    String real377() =>
+        File('test/fixtures/texttv_377.json').readAsStringSync();
+
+    test(
+      'a coloured page is a coloured grid, one style list per line',
+      () async {
+        rig.fetcher.route('texttv.nu', real377());
+
+        final result = await rig.run(['377']) as CommandOutput;
+
+        expect(result.columns, 40);
+        expect(result.styles, isNotNull);
+        expect(result.styles, hasLength(result.lines.length));
+        for (var i = 0; i < result.lines.length; i++) {
+          expect(plainText(result.styles![i]), result.lines[i], reason: '$i');
+        }
+      },
+    );
+
+    test(
+      'every line is the full 40 columns, so colour runs to the edge',
+      () async {
+        rig.fetcher.route('texttv.nu', real377());
+
+        final result = await rig.run(['377']) as CommandOutput;
+
+        for (final line in result.lines) {
+          expect(line, hasLength(40), reason: line);
+        }
+      },
+    );
+
+    test(
+      'the navigation footer is white on black, padded to the edge',
+      () async {
+        rig.fetcher.route('texttv.nu', real377());
+
+        final result = await rig.run(['377']) as CommandOutput;
+
+        expect(result.lines.last.trimRight(), 'prev 376 · next 378');
+        final footer = result.styles!.last;
+        expect(plainText(footer), hasLength(40));
+        expect(
+          footer.every(
+            (run) => run.fg == TvColor.white && run.bg == TvColor.black,
+          ),
+          isTrue,
+        );
+      },
+    );
+
+    test('prev and next are underlined and tap to open that page', () async {
+      rig.fetcher.route('texttv.nu', real377());
+
+      final result = await rig.run(['377']) as CommandOutput;
+
+      final links = result.styles!.last.where((run) => run.command != null);
+      expect(links.map((run) => (run.text, run.command, run.underline)), [
+        ('prev 376', 'texttv 376', true),
+        ('next 378', 'texttv 378', true),
+      ]);
+    });
+
+    test('a page with no colours is plain, as before', () async {
+      rig.fetcher.route('texttv.nu', _realPage104());
+
+      final result = await rig.run(['104']) as CommandOutput;
+
+      expect(result.styles, isNull);
+      expect(result.columns, 40);
     });
   });
 

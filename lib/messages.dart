@@ -55,6 +55,23 @@ abstract final class Messages {
       ? 'no finished todos to clear'
       : 'cleared $count finished ${count == 1 ? 'todo' : 'todos'}';
 
+  /// Runtime permissions, for every feature that asks for one. [what] is the
+  /// capability's short name (`location`, `calendar`).
+  static String permissionDenied(String what) => '$what permission denied';
+  static String permissionOff(String what) => '$what permission is off';
+  static const permissionHowToGrant = [
+    'turn it on in the app settings:',
+    'Apps > this app > Permissions',
+  ];
+
+  /// [permissionDenied], or where to turn it on when Android won't ask again.
+  static List<String> permissionFailure(
+    String what, {
+    required bool permanent,
+  }) => permanent
+      ? [permissionOff(what), ...permissionHowToGrant]
+      : [permissionDenied(what)];
+
   static const weatherUsage = ['usage: weather [city]', 'try: help weather'];
   static const weatherNoHome = 'no home city yet (try: weather home <city>)';
   static String weatherNoPlace(String query) =>
@@ -63,11 +80,63 @@ abstract final class Messages {
   static String weatherHomeSet(String label) => 'home set to $label';
   static const weatherHomeCleared = 'home cleared';
   static String weatherError(String reason) => 'weather: $reason';
+
+  /// Shown when Android could not name the spot: the position itself, so the
+  /// user can still see where the forecast is for.
+  static String weatherHere(double latitude, double longitude) =>
+      'Current location (${latitude.toStringAsFixed(2)}, '
+      '${longitude.toStringAsFixed(2)})';
+  static const weatherLocation = 'location';
+  static const weatherTryCity = 'or use: weather <city>';
+  static const weatherSaveHome = 'or save one: weather home <city>';
+  static const weatherUsingHome = 'no location, showing home';
   static const weatherToday = 'Today';
   static String weatherNow(String words, String temp, String feels) =>
       '$words, $temp (feels $feels)';
   static String weatherWind(String speed, String point, int humidity) =>
       'wind $speed m/s $point · humidity $humidity%';
+
+  static const calendar = 'calendar';
+  static const calUsage = [
+    'usage: cal [day|week|month] [date]',
+    'try: help cal',
+  ];
+  static String calBadDate(String text) =>
+      "'$text' is not a date (try 2026-09-30)";
+  static String calBadMonth(String text) =>
+      "'$text' is not a month (try 2026-09)";
+  static String calError(String reason) => 'cal: $reason';
+
+  static const contacts = 'contacts';
+  static const callUsage = ['usage: call <name or number>', 'try: help call'];
+  static const contactUsage = ['usage: contact <name>', 'try: help contact'];
+  static String noContact(String query) => "no contact matching '$query'";
+  static String ambiguousContact(String query) =>
+      "several contacts match '$query':";
+  static String severalNumbers(String name) => '$name has several numbers:';
+  static const callTryNumber = 'call one of them: call <number>';
+  static const callOrNumber = 'or dial a number: call <number>';
+  static String calling(String who) => 'calling $who';
+  static String dialerOpened(String who) => 'dialer opened for $who';
+  static String callError(String reason) => 'call: $reason';
+  static String contactError(String reason) => 'contact: $reason';
+  static String contactCount(int count) =>
+      count == 1 ? '1 contact' : '$count contacts';
+  static const contactsEmpty = 'no contacts with a phone number';
+  static String contactsMore(int count) => '…and $count more';
+
+  static const sms = 'sms';
+  static const smsUsage = [
+    'usage: sms <name or number> "text"',
+    'quote a name or text of several',
+    'words. try: help sms',
+  ];
+  static String smsTooLong(int max) => 'text is too long (max $max characters)';
+  static const smsOrNumber = 'or use a number: sms <number> "text"';
+  static const smsTryNumber = 'send to one: sms <number> "text"';
+  static String smsSent(String who) => 'sent to $who';
+  static String smsError(String reason) => 'sms: $reason';
+  static const smsSendingNote = 'sent at once; cannot be undone';
 
   static const textTvUsage = [
     'usage: texttv [page] [part]',
@@ -97,6 +166,17 @@ abstract final class Messages {
       "could not save the size, so it won't survive a restart: $reason";
   static String unknownFontSize(String name, List<String> available) =>
       "no size called '$name' (available: ${available.join(', ')})";
+
+  static const uiUsage = 'usage: ui [rich|plain]';
+  static const uiHeader = 'views:';
+  static String uiChanged(String name) => 'ui: $name, for new output';
+  static String uiNotSaved(String reason) =>
+      "could not save the view, so it won't survive a restart: $reason";
+  static String unknownView(String name, List<String> available) =>
+      "no view called '$name' (available: ${available.join(', ')})";
+
+  static String entryMatches(int count, String query) =>
+      "$count matching '$query'";
 
   static const convertUsage = [
     'usage: convert <value> <from> <to>',

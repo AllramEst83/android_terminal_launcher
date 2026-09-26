@@ -43,6 +43,27 @@ _Palette _paletteFor(ThemeChoice choice) => switch (choice) {
     foreground: Color(0xFFE6C79C),
     error: Color(0xFFFF7B54),
   ),
+  // Deep indigo night sky, candy-pink text.
+  ThemeChoice.unicorn => const _Palette(
+    brightness: Brightness.dark,
+    background: Color(0xFF1A1033),
+    foreground: Color(0xFFFFA6F0),
+    error: Color(0xFFFF7A90),
+  ),
+  // Pink Explosion: bubblegum pink with raspberry text. A light theme.
+  ThemeChoice.pastel => const _Palette(
+    brightness: Brightness.light,
+    background: Color(0xFFFFD1E8),
+    foreground: Color(0xFF7A0F4A),
+    error: Color(0xFFB3002D),
+  ),
+  // Neon cyan on a purple-black night, hot-pink errors.
+  ThemeChoice.cyberpunk => const _Palette(
+    brightness: Brightness.dark,
+    background: Color(0xFF0A0616),
+    foreground: Color(0xFF00F5D4),
+    error: Color(0xFFFF3D7F),
+  ),
 };
 
 /// The scale every text style in the theme is multiplied by. Exhaustive on

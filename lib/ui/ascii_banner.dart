@@ -1,21 +1,20 @@
 import 'dart:async';
 
+import 'package:android_terminal_launcher/ui/rocket_art.dart';
 import 'package:flutter/material.dart';
 
-const _frameA = [r'  /\_/\', r' ( o.o )', r'  > ^ <'];
-const _frameB = [r'  /\_/\', r' ( -.- )', r'  > ^ <'];
+const _frameInterval = Duration(milliseconds: 220);
 
-/// A couple of blinks, then it settles on [_frameA]. Not an endless loop: this
-/// sits on a launcher's home screen, which can be on-screen for hours, and a
-/// timer ticking (and repainting) forever for that long would only drain the
-/// battery for no one to see.
-const _sequence = [_frameA, _frameB, _frameA, _frameB, _frameA];
-const _frameInterval = Duration(milliseconds: 450);
-
-/// The banner shown on startup and after `clear`: a small ASCII cat that
-/// blinks a couple of times and settles, with [caption] (`Messages.welcome`)
-/// printed underneath. Plain ASCII only, so it never falls back off
-/// `JetBrainsMono` onto a font with different glyph widths.
+/// The banner shown on startup and after `clear`: a small ASCII rocket that
+/// counts through ignition, lifts off and settles high on the screen, with
+/// [caption] (`Messages.welcome`) centred underneath. The launch runs once and
+/// stops. Not an endless loop: this sits on a launcher's home screen, which can
+/// be on-screen for hours, and a timer ticking (and repainting) forever for
+/// that long would only drain the battery for no one to see.
+///
+/// The picture is centred as one block (see [rocketFrames]: all lines are the
+/// same width), so the rocket keeps its shape while the block sits in the
+/// middle of the screen.
 class AsciiBanner extends StatefulWidget {
   const AsciiBanner({super.key, required this.caption});
 
@@ -36,7 +35,7 @@ class _AsciiBannerState extends State<AsciiBanner> {
   }
 
   void _advance(Timer timer) {
-    if (_step >= _sequence.length - 1) {
+    if (_step >= rocketFrames.length - 1) {
       timer.cancel();
       return;
     }
@@ -53,11 +52,13 @@ class _AsciiBannerState extends State<AsciiBanner> {
   Widget build(BuildContext context) {
     final style = Theme.of(context).textTheme.bodyLarge;
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        for (final line in _sequence[_step]) Text(line, style: style),
-        const SizedBox(height: 4),
-        Text(widget.caption, style: style),
+        // One Text for the whole picture: lines padded to one width stay
+        // aligned, and the block is what gets centred.
+        Text(rocketFrames[_step].join('\n'), style: style),
+        const SizedBox(height: 8),
+        Text(widget.caption, style: style, textAlign: TextAlign.center),
       ],
     );
   }

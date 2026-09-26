@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/local_store_exception.dart';
+import 'package:android_terminal_launcher/services/location_service.dart';
 import 'package:android_terminal_launcher/services/network_exception.dart';
 import 'package:android_terminal_launcher/services/weather.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import '../../fakes/fake_app_repository.dart';
 import '../../fakes/fake_http_fetcher.dart';
+import '../../fakes/fake_location_service.dart';
 import '../../fakes/in_memory_local_store.dart';
 
 const _gothenburg = Place(
@@ -33,11 +35,12 @@ class _Rig {
         File('test/fixtures/forecast_goteborg.json').readAsStringSync(),
       );
     weather = Weather(fetcher: fetcher, store: store);
-    command = weatherCommand(weather);
+    command = weatherCommand(weather, location);
   }
 
   final fetcher = FakeHttpFetcher();
   final store = InMemoryLocalStore();
+  final location = FakeLocationService();
   late final Weather weather;
   late final Command command;
 
@@ -122,22 +125,158 @@ void main() {
   });
 
   group('weather (no city)', () {
-    test('uses the saved home, without looking it up again', () async {
-      await rig.weather.setHome(_gothenburg);
+    test('uses where the phone is, by coordinates', () async {
+      rig.location.result = const LocationFound(
+        latitude: 57.7,
+        longitude: 11.97,
+      );
 
       final lines = _lines(await rig.run([]));
 
-      expect(lines.first, _gothenburg.label);
+      expect(lines.first, Messages.weatherHere(57.7, 11.97));
       expect(rig.geocodes, isEmpty);
-      expect(rig.forecasts, hasLength(1));
+      expect(rig.forecasts.single.queryParameters['latitude'], '57.7');
+      expect(rig.forecasts.single.queryParameters['longitude'], '11.97');
     });
 
-    test('with no home saved, says how to set one', () async {
+    test('names the place when Android could', () async {
+      rig.location.result = const LocationFound(
+        latitude: 57.7,
+        longitude: 11.97,
+        name: 'Gothenburg',
+        region: 'Västra Götaland County',
+        country: 'Sweden',
+      );
+
+      final lines = _lines(await rig.run([]));
+
+      expect(lines.first, 'Gothenburg, Västra Götaland County, Sweden');
+      expect(rig.forecasts.single.queryParameters['latitude'], '57.7');
+    });
+
+    test('a region with no town is not shown on its own', () async {
+      rig.location.result = const LocationFound(
+        latitude: 57.7,
+        longitude: 11.97,
+        region: 'Västra Götaland County',
+        country: 'Sweden',
+      );
+
+      final lines = _lines(await rig.run([]));
+
+      expect(lines.first, Messages.weatherHere(57.7, 11.97));
+    });
+
+    test('the position line is short enough for a phone', () {
+      expect(
+        Messages.weatherHere(-57.71234, -111.96679).length,
+        lessThanOrEqualTo(36),
+      );
+    });
+
+    test('prefers the position to a saved home', () async {
+      await rig.weather.setHome(_gothenburg);
+      rig.location.result = const LocationFound(latitude: 1, longitude: 2);
+
+      final lines = _lines(await rig.run([]));
+
+      expect(lines.first, Messages.weatherHere(1, 2));
+      expect(rig.forecasts.single.queryParameters['latitude'], '1.0');
+    });
+
+    test('a city is never a reason to ask for the location', () async {
+      await rig.run(['gothenburg']);
+      await rig.run(['home', 'gothenburg']);
+
+      expect(rig.location.calls, 0);
+    });
+
+    for (final MapEntry(key: why, value: failed) in <String, LocationResult>{
+      'denied': const LocationDenied(permanent: false),
+      'permanently denied': const LocationDenied(permanent: true),
+      'unavailable': const LocationUnavailable('no location fix'),
+    }.entries) {
+      test('falls back to the saved home when $why', () async {
+        await rig.weather.setHome(_gothenburg);
+        rig.location.result = failed;
+
+        final result = await rig.run([]);
+
+        expect(result, isA<CommandOutput>());
+        expect(_lines(result).first, Messages.weatherUsingHome);
+        expect(_lines(result)[1], _gothenburg.label);
+        expect(rig.geocodes, isEmpty);
+        expect(rig.forecasts, hasLength(1));
+      });
+    }
+
+    test('denied with no home: says so and offers a city', () async {
       final result = await rig.run([]);
 
       expect(result, isA<CommandFailure>());
-      expect(_lines(result), [Messages.weatherNoHome]);
+      expect(_lines(result), [
+        Messages.permissionDenied(Messages.weatherLocation),
+        Messages.weatherTryCity,
+        Messages.weatherSaveHome,
+      ]);
       expect(rig.fetcher.requests, isEmpty);
+    });
+
+    test('permanently denied: says where to turn it on', () async {
+      rig.location.result = const LocationDenied(permanent: true);
+
+      final result = await rig.run([]);
+
+      expect(result, isA<CommandFailure>());
+      expect(_lines(result), [
+        Messages.permissionOff(Messages.weatherLocation),
+        ...Messages.permissionHowToGrant,
+        Messages.weatherTryCity,
+        Messages.weatherSaveHome,
+      ]);
+      expect(rig.fetcher.requests, isEmpty);
+    });
+
+    test('no fix with no home: gives the reason', () async {
+      rig.location.result = const LocationUnavailable(
+        'location is switched off in Android',
+      );
+
+      final result = await rig.run([]);
+
+      expect(result, isA<CommandFailure>());
+      expect(_lines(result), [
+        'location is switched off in Android',
+        Messages.weatherTryCity,
+        Messages.weatherSaveHome,
+      ]);
+    });
+
+    test('every failure line fits a phone screen', () async {
+      for (final failed in <LocationResult>[
+        const LocationDenied(permanent: false),
+        const LocationDenied(permanent: true),
+        const LocationUnavailable('location is switched off in Android'),
+      ]) {
+        rig.location.result = failed;
+        for (final line in _lines(await rig.run([]))) {
+          expect(line.length, lessThanOrEqualTo(36), reason: line);
+        }
+      }
+    });
+
+    test('a forecast failure at the found position is reported', () async {
+      rig.location.result = const LocationFound(latitude: 1, longitude: 2);
+      rig.fetcher.route(
+        'v1/forecast',
+        const NetworkException('api.open-meteo.com did not answer in time'),
+      );
+
+      final result = await rig.run([]);
+
+      expect(_lines(result), [
+        Messages.weatherError('api.open-meteo.com did not answer in time'),
+      ]);
     });
   });
 

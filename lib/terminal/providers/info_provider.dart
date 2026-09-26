@@ -1,3 +1,4 @@
+import 'package:android_terminal_launcher/services/location_service.dart';
 import 'package:android_terminal_launcher/services/text_tv.dart';
 import 'package:android_terminal_launcher/services/weather.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
@@ -8,10 +9,15 @@ import 'package:android_terminal_launcher/terminal/commands/weather_command.dart
 /// Things you look up online: Swedish Text TV and the weather. Built in
 /// `main.dart` with the real services.
 class InfoProvider implements CommandProvider {
-  InfoProvider({required this.textTv, required this.weather});
+  InfoProvider({
+    required this.textTv,
+    required this.weather,
+    required this.location,
+  });
 
   final TextTv textTv;
   final Weather weather;
+  final LocationService location;
 
   @override
   String get name => 'info';
@@ -19,6 +25,6 @@ class InfoProvider implements CommandProvider {
   @override
   List<Command> get commands => [
     textTvCommand(textTv),
-    weatherCommand(weather),
+    weatherCommand(weather, location),
   ];
 }

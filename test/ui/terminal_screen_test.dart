@@ -286,7 +286,8 @@ void main() {
     ) async {
       await _pumpApp(tester);
 
-      await _type(tester, 'help');
+      // `--plain`: help's rich card is a block, which has no rule of its own.
+      await _type(tester, 'help --plain');
       final helpLines = find.byKey(outputRuleKey).evaluate().length;
       await _type(tester, 'nope');
 
@@ -294,7 +295,7 @@ void main() {
       expect(find.byKey(outputRuleKey), findsNWidgets(helpLines + 1));
       expect(
         find.ancestor(
-          of: find.text(r'$ help'),
+          of: find.text(r'$ help --plain'),
           matching: find.byKey(outputRuleKey),
         ),
         findsNothing,

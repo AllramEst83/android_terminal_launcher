@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:android_terminal_launcher/services/network_exception.dart';
+import 'package:android_terminal_launcher/services/styled_text.dart';
 import 'package:android_terminal_launcher/services/text_tv.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -10,6 +11,23 @@ import '../fakes/fake_http_fetcher.dart';
 /// A real answer from texttv.nu for page 104, reduced to the fields we read.
 String _realPage104() =>
     File('test/fixtures/texttv_104.json').readAsStringSync();
+
+/// A real page 377 with its colours (the `content` HTML beside the plain text).
+String _realPage377() =>
+    File('test/fixtures/texttv_377.json').readAsStringSync();
+
+String _oneRow() =>
+    '<span class="line"><span class="bgBl">${'x' * 40}</span></span>';
+
+String _pageWith(List<String> plain, Object? content) => jsonEncode([
+  {
+    'num': '5',
+    'content_plain': plain,
+    'content': content,
+    'next_page': '6',
+    'prev_page': '4',
+  },
+]);
 
 String _pageJson(List<String> parts, {Object? next = '2', Object? prev = '1'}) {
   return jsonEncode([
@@ -89,6 +107,92 @@ void main() {
       for (final line in page.parts.single) {
         expect(line, line.trimRight());
       }
+    });
+  });
+
+  group('colours', () {
+    test(
+      'a page with HTML has its rows styled, 40 wide, beside the plain text',
+      () async {
+        final fetcher = FakeHttpFetcher()..route('texttv.nu', _realPage377());
+
+        final page = (await _service(fetcher).page(377))!;
+
+        final styled = page.styledParts!;
+        expect(styled, hasLength(page.parts.length));
+        expect(styled.single, hasLength(24));
+        for (final row in styled.single) {
+          expect(plainText(row), hasLength(TextTv.columns));
+        }
+        expect(page.parts.single.first, startsWith('377 SVT Text'));
+      },
+    );
+
+    test('rows keep their full width: a bar runs to the edge', () async {
+      final fetcher = FakeHttpFetcher()..route('texttv.nu', _realPage377());
+
+      final page = (await _service(fetcher).page(377))!;
+
+      final bar = page.styledParts!.single[1];
+      expect(bar.last.bg, TvColor.blue);
+      expect(plainText(bar), hasLength(40));
+    });
+
+    test(
+      'a page without HTML has no styles, and is otherwise the same',
+      () async {
+        final fetcher = FakeHttpFetcher()..route('texttv.nu', _realPage104());
+
+        final page = (await _service(fetcher).page(104))!;
+
+        expect(page.styledParts, isNull);
+        expect(page.parts.single, hasLength(24));
+      },
+    );
+
+    test('HTML that cannot be read costs the colours, not the page', () async {
+      final fetcher = FakeHttpFetcher()
+        ..route('texttv.nu', _pageWith(['hello'], ['<div>surprise</div>']));
+
+      final page = (await _service(fetcher).page(5))!;
+
+      expect(page.styledParts, isNull);
+      expect(page.parts, [
+        ['hello'],
+      ]);
+    });
+
+    test('one unreadable part means no colours for any part', () async {
+      final fetcher = FakeHttpFetcher()
+        ..route(
+          'texttv.nu',
+          _pageWith(['a', 'b'], [_oneRow(), '<div>bad</div>']),
+        );
+
+      expect((await _service(fetcher).page(5))!.styledParts, isNull);
+    });
+
+    test('a different number of HTML and plain parts is not trusted', () async {
+      final fetcher = FakeHttpFetcher()
+        ..route('texttv.nu', _pageWith(['a', 'b'], [_oneRow()]));
+
+      expect((await _service(fetcher).page(5))!.styledParts, isNull);
+    });
+
+    test('content that is not a list is ignored', () async {
+      final fetcher = FakeHttpFetcher()
+        ..route('texttv.nu', _pageWith(['a'], 'oops'));
+
+      expect((await _service(fetcher).page(5))!.styledParts, isNull);
+    });
+
+    test('several parts each get their colours', () async {
+      final fetcher = FakeHttpFetcher()
+        ..route('texttv.nu', _pageWith(['a', 'b'], [_oneRow(), _oneRow()]));
+
+      final page = (await _service(fetcher).page(5))!;
+
+      expect(page.styledParts, hasLength(2));
     });
   });
 

@@ -2,8 +2,11 @@ import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/font_size_choice.dart';
 import 'package:android_terminal_launcher/services/font_size_settings.dart';
 import 'package:android_terminal_launcher/services/local_store_exception.dart';
+import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
+import 'package:android_terminal_launcher/terminal/tools/choice_blocks.dart';
+import 'package:android_terminal_launcher/terminal/tools/notice.dart';
 
 /// `font` lists the sizes (the current one starred), `font <size>` switches.
 /// Takes effect at once, redrawing everything already on screen at the new
@@ -28,7 +31,18 @@ Future<CommandResult> _font(
 ) async {
   if (args.isEmpty ||
       (args.length == 1 && args.first.toLowerCase() == 'list')) {
-    return CommandOutput(_listing(settings.current));
+    return CommandOutput(
+      _listing(settings.current),
+      block: settingChoices(
+        title: 'font size',
+        command: 'font',
+        current: settings.current.name,
+        options: [
+          for (final c in FontSizeChoice.values)
+            (name: c.name, description: c.description),
+        ],
+      ),
+    );
   }
   if (args.length != 1) return const CommandFailure([Messages.fontUsage]);
 
@@ -45,12 +59,13 @@ Future<CommandResult> _font(
     await settings.select(choice);
   } on LocalStoreException catch (error) {
     // The size did change, so say so, and say it won't survive a restart.
-    return CommandOutput([
+    return noticeOutput(
       Messages.fontChanged(choice.name),
-      Messages.fontNotSaved(error.message),
-    ]);
+      kind: NoticeKind.warning,
+      details: [Messages.fontNotSaved(error.message)],
+    );
   }
-  return CommandOutput([Messages.fontChanged(choice.name)]);
+  return noticeOutput(Messages.fontChanged(choice.name));
 }
 
 List<String> _listing(FontSizeChoice current) {

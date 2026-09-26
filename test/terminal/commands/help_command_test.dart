@@ -10,14 +10,22 @@ import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/commands/help_command.dart';
 import 'package:android_terminal_launcher/terminal/providers/appearance_provider.dart';
+import 'package:android_terminal_launcher/terminal/providers/calendar_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/info_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/notes_provider.dart';
+import 'package:android_terminal_launcher/terminal/providers/phone_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../fakes/fake_app_repository.dart';
+import '../../fakes/fake_calendar_service.dart';
+import '../../fakes/fake_contacts_service.dart';
 import '../../fakes/fake_font_size_settings.dart';
 import '../../fakes/fake_http_fetcher.dart';
+import '../../fakes/fake_location_service.dart';
+import '../../fakes/fake_phone_service.dart';
+import '../../fakes/fake_sms_service.dart';
 import '../../fakes/fake_theme_settings.dart';
+import '../../fakes/fake_view_mode_settings.dart';
 import '../../fakes/in_memory_local_store.dart';
 import '../../fakes/static_provider.dart';
 import '../../fakes/test_command.dart';
@@ -59,8 +67,19 @@ CommandRegistry _fullRegistry() {
     InfoProvider(
       textTv: TextTv(fetcher: FakeHttpFetcher()),
       weather: Weather(fetcher: FakeHttpFetcher(), store: store),
+      location: FakeLocationService(),
     ),
-    AppearanceProvider(FakeThemeSettings(), FakeFontSizeSettings()),
+    CalendarProvider(FakeCalendarService()),
+    PhoneProvider(
+      contacts: FakeContactsService(),
+      phone: FakePhoneService(),
+      sms: FakeSmsService(),
+    ),
+    AppearanceProvider(
+      FakeThemeSettings(),
+      FakeFontSizeSettings(),
+      FakeViewModeSettings(),
+    ),
     NotesProvider(
       notes: EntryStore(store: store, key: 'notes'),
       todos: EntryStore(store: store, key: 'todos'),
@@ -325,6 +344,7 @@ void main() {
         'apps',
         'tools',
         'info',
+        'personal',
         'appearance',
         'notes',
       ]);

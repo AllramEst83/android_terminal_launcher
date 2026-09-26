@@ -5,18 +5,54 @@ import io.flutter.embedding.engine.FlutterEngine
 
 class MainActivity : FlutterActivity() {
     private var appsChannel: AppsChannelHandler? = null
+    private var permissionsChannel: PermissionsChannelHandler? = null
+    private var locationChannel: LocationChannelHandler? = null
+    private var calendarChannel: CalendarChannelHandler? = null
+    private var contactsChannel: ContactsChannelHandler? = null
+    private var phoneChannel: PhoneChannelHandler? = null
+    private var smsChannel: SmsChannelHandler? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
-        appsChannel = AppsChannelHandler(
-            applicationContext,
-            flutterEngine.dartExecutor.binaryMessenger,
-        )
+        val messenger = flutterEngine.dartExecutor.binaryMessenger
+        appsChannel = AppsChannelHandler(applicationContext, messenger)
+        // Asking for a permission shows a dialog over an activity, so this one
+        // needs `this`, not the application context.
+        permissionsChannel = PermissionsChannelHandler(this, messenger)
+        locationChannel = LocationChannelHandler(applicationContext, messenger)
+        calendarChannel = CalendarChannelHandler(applicationContext, messenger)
+        contactsChannel = ContactsChannelHandler(applicationContext, messenger)
+        phoneChannel = PhoneChannelHandler(applicationContext, messenger)
+        smsChannel = SmsChannelHandler(applicationContext, messenger)
+    }
+
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<out String>,
+        grantResults: IntArray,
+    ) {
+        val handled =
+            permissionsChannel?.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (handled != true) {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
     }
 
     override fun cleanUpFlutterEngine(flutterEngine: FlutterEngine) {
         appsChannel?.dispose()
         appsChannel = null
+        permissionsChannel?.dispose()
+        permissionsChannel = null
+        locationChannel?.dispose()
+        locationChannel = null
+        calendarChannel?.dispose()
+        calendarChannel = null
+        contactsChannel?.dispose()
+        contactsChannel = null
+        phoneChannel?.dispose()
+        phoneChannel = null
+        smsChannel?.dispose()
+        smsChannel = null
         super.cleanUpFlutterEngine(flutterEngine)
     }
 }

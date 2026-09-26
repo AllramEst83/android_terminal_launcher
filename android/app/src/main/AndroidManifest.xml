@@ -5,6 +5,23 @@
     <!-- Lets the `uninstall` command open Android's uninstall dialog (API 28+). -->
     <uses-permission android:name="android.permission.REQUEST_DELETE_PACKAGES" />
 
+    <!-- `weather` with no city: a rough position is enough for a forecast, so
+         precise location is deliberately not requested. Asked for at runtime. -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!-- `cal`: shows events from the phone's calendars. Asked for at runtime. -->
+    <uses-permission android:name="android.permission.READ_CALENDAR" />
+
+    <!-- `contact` and `call <name>`: look a name up in the phone book. -->
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!-- `call`: place the call directly. Optional: when refused, the dialer
+         opens with the number filled in instead. -->
+    <uses-permission android:name="android.permission.CALL_PHONE" />
+
+    <!-- `sms`: send an ordinary text message. There is no fallback for a refusal. -->
+    <uses-permission android:name="android.permission.SEND_SMS" />
+
     <application
         android:label="android_terminal_launcher"
         android:name="${applicationName}"

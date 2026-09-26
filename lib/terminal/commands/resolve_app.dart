@@ -3,6 +3,7 @@ import 'package:android_terminal_launcher/services/app_info.dart';
 import 'package:android_terminal_launcher/terminal/app_matcher.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
+import 'package:android_terminal_launcher/terminal/tools/app_blocks.dart';
 
 /// Outcome of turning a command's arguments into exactly one installed app.
 sealed class AppResolution {
@@ -26,9 +27,15 @@ final class UnresolvedApp extends AppResolution {
 /// Shared by every command that acts on one app (`open`, `uninstall`), so they
 /// all match names the same way. Args are joined with spaces so
 /// `open google chrome` works before quoting exists.
+///
+/// Several matches are also offered as a picker in the rich view: a tap on one
+/// runs `<pickCommand> "<name>"`, or with [fillPick] puts it in the prompt to be
+/// looked at first (for `uninstall`).
 Future<AppResolution> resolveApp(
   CommandContext context, {
   required String usageMessage,
+  required String pickCommand,
+  bool fillPick = false,
 }) async {
   final query = context.args.join(' ');
   if (query.isEmpty) return UnresolvedApp(CommandFailure([usageMessage]));
@@ -39,10 +46,13 @@ Future<AppResolution> resolveApp(
   }
   if (matches.length > 1) {
     return UnresolvedApp(
-      CommandFailure([
-        Messages.ambiguousApp(query),
-        for (final app in matches) '  ${app.label}',
-      ]),
+      CommandFailure(
+        [
+          Messages.ambiguousApp(query),
+          for (final app in matches) '  ${app.label}',
+        ],
+        block: appPicker(query, matches, command: pickCommand, fill: fillPick),
+      ),
     );
   }
   return ResolvedApp(matches.single);

@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/app_info.dart';
 import 'package:android_terminal_launcher/services/app_repository_exception.dart';
+import 'package:android_terminal_launcher/services/styled_text.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
@@ -121,14 +124,56 @@ void main() {
     expect(ids, [2, 3]);
   });
 
-  test('notifies listeners once per submitted line', () async {
+  test('tells listeners about the echo and again about the result', () async {
+    final session = _session(FakeAppRepository());
+    final seen = <int>[];
+    session.addListener(() => seen.add(session.lines.length));
+
+    await session.submit('help');
+
+    // First just the echoed command, then the command and what it printed.
+    expect(seen, hasLength(2));
+    expect(seen.first, 1);
+    expect(seen.last, greaterThan(seen.first));
+  });
+
+  test('a line that never runs a command is announced once', () async {
     final session = _session(FakeAppRepository());
     var notified = 0;
     session.addListener(() => notified++);
 
-    await session.submit('help');
+    await session.submit('frobnicate');
+    await session.submit('echo "unterminated');
 
-    expect(notified, 1);
+    expect(notified, 2);
+  });
+
+  test('the log is never longer than the last announcement said', () async {
+    final gate = Completer<void>();
+    final session = _session(
+      FakeAppRepository(),
+      commands: [
+        Command(
+          name: 'wait',
+          description: 'waits',
+          usage: 'wait',
+          run: (context) async {
+            await gate.future;
+            return const CommandOutput(['done']);
+          },
+        ),
+      ],
+    );
+    var announced = 0;
+    session.addListener(() => announced = session.lines.length);
+
+    final running = session.submit('wait');
+
+    // While it runs, what the UI was told is what the log holds.
+    expect(announced, session.lines.length);
+    gate.complete();
+    await running;
+    expect(announced, session.lines.length);
   });
 
   test('a command that throws becomes an error line, not a crash', () async {
@@ -198,6 +243,54 @@ void main() {
     await session.submit('plain');
 
     expect(session.lines.map((l) => l.columns), [null, 40, 40, null, null]);
+  });
+
+  test('styles on a grid output are kept on the log lines', () async {
+    final styles = [
+      [const StyledRun('ab', fg: TvColor.yellow, bg: TvColor.blue)],
+      [const StyledRun('cd')],
+    ];
+    final session = _session(
+      FakeAppRepository(),
+      commands: [
+        Command(
+          name: 'tv',
+          description: 'tv',
+          usage: 'tv',
+          run: (context) async =>
+              CommandOutput(const ['ab', 'cd'], columns: 2, styles: styles),
+        ),
+      ],
+    );
+
+    await session.submit('tv');
+
+    expect(session.lines.map((l) => l.runs), [null, styles[0], styles[1]]);
+  });
+
+  test('styles that do not match the lines one to one are dropped', () async {
+    final session = _session(
+      FakeAppRepository(),
+      commands: [
+        Command(
+          name: 'tv',
+          description: 'tv',
+          usage: 'tv',
+          run: (context) async => const CommandOutput(
+            ['ab', 'cd'],
+            columns: 2,
+            styles: [
+              [StyledRun('ab')],
+            ],
+          ),
+        ),
+      ],
+    );
+
+    await session.submit('tv');
+
+    expect(session.lines.map((l) => l.runs), [null, null, null]);
+    expect(session.lines.skip(1).map((l) => l.text), ['ab', 'cd']);
   });
 
   test('an unterminated quote prints an error and runs nothing', () async {

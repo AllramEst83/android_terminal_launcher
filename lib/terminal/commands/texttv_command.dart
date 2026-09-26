@@ -1,5 +1,6 @@
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/network_exception.dart';
+import 'package:android_terminal_launcher/services/styled_text.dart';
 import 'package:android_terminal_launcher/services/text_tv.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
@@ -73,22 +74,57 @@ Future<CommandResult> _texttv(TextTv textTv, List<String> args) async {
     );
   }
 
+  final footer = _footer(page, part);
+  final coloured = page.styledParts?[part - 1];
+  if (coloured != null) {
+    // The footer is white on black like the rest of the screen, padded to the
+    // full width so its row is black to the edge as well.
+    final rows = [...coloured, for (final line in footer) _padded(line)];
+    return CommandOutput(
+      [for (final row in rows) plainText(row)],
+      columns: TextTv.columns,
+      styles: rows,
+    );
+  }
   return CommandOutput([
     ...page.parts[part - 1],
-    ..._footer(page, part),
+    for (final line in footer) plainText(line),
   ], columns: TextTv.columns);
 }
 
-/// Navigation lines, kept inside the page's 40 columns so they line up.
-List<String> _footer(TextTvPage page, int part) {
+/// Navigation lines, kept inside the page's 40 columns so they line up. The
+/// pages they name are underlined and tap to open.
+List<List<StyledRun>> _footer(TextTvPage page, int part) {
   final parts = page.parts.length;
+  StyledRun link(String text, String command) =>
+      StyledRun(text, underline: true, command: command);
   final near = [
-    if (page.previous != null) 'prev ${page.previous}',
-    if (parts > 1) 'part $part/$parts',
-    if (page.next != null) 'next ${page.next}',
+    if (page.previous != null)
+      [link('prev ${page.previous}', 'texttv ${page.previous}')],
+    if (parts > 1) [StyledRun('part $part/$parts')],
+    if (page.next != null) [link('next ${page.next}', 'texttv ${page.next}')],
   ];
   return [
-    if (near.isNotEmpty) near.join(' · '),
-    if (part < parts) 'more: texttv ${page.number} ${part + 1}',
+    if (near.isNotEmpty)
+      [
+        for (var i = 0; i < near.length; i++) ...[
+          if (i > 0) const StyledRun(' · '),
+          ...near[i],
+        ],
+      ],
+    if (part < parts)
+      [
+        link(
+          'more: texttv ${page.number} ${part + 1}',
+          'texttv ${page.number} ${part + 1}',
+        ),
+      ],
   ];
+}
+
+/// [line] with blanks added to fill the page's width, so its row is black to
+/// the edge like the rest of the screen.
+List<StyledRun> _padded(List<StyledRun> line) {
+  final missing = TextTv.columns - plainText(line).length;
+  return [...line, if (missing > 0) StyledRun(' ' * missing)];
 }

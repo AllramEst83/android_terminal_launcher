@@ -95,11 +95,49 @@ void main() {
     expect(settings.current, ThemeChoice.coffee);
   });
 
+  group('the three newer themes', () {
+    for (final name in ['unicorn', 'pastel', 'cyberpunk']) {
+      test('$name can be switched to', () async {
+        final settings = FakeThemeSettings();
+
+        final result = await _theme(settings, [name]);
+
+        expect(settings.selected, [ThemeChoice.parse(name)]);
+        expect(_lines(result), [Messages.themeChanged(name)]);
+      });
+    }
+
+    test('every listing line fits a phone screen', () async {
+      for (final line in _lines(await _theme(FakeThemeSettings(), []))) {
+        expect(line.length, lessThanOrEqualTo(36), reason: line);
+      }
+    });
+
+    test('the help notes name every theme, on short lines', () {
+      final notes = themeCommand(FakeThemeSettings()).notes;
+
+      for (final choice in ThemeChoice.values) {
+        expect(notes.join(' '), contains(choice.name));
+      }
+      for (final line in notes) {
+        expect(line.length + 2, lessThanOrEqualTo(36), reason: line);
+      }
+    });
+  });
+
   group('argument suggestions', () {
     final suggest = themeCommand(FakeThemeSettings()).argSuggestions!;
 
     test('offer list and every theme for an empty argument', () {
-      expect(suggest('', const []), ['list', 'dark', 'light', 'coffee']);
+      expect(suggest('', const []), [
+        'list',
+        'dark',
+        'light',
+        'coffee',
+        'unicorn',
+        'pastel',
+        'cyberpunk',
+      ]);
     });
 
     test('narrow by prefix, ignoring case', () {
