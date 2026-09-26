@@ -78,8 +78,18 @@ void main() {
     expect(notified, 0);
   });
 
-  test('clear empties the log, including its own echo', () async {
+  test('clear replaces the log with the banner, not with nothing', () async {
     final session = _session(FakeAppRepository(), banner: ['hello']);
+    await session.submit('help');
+
+    await session.submit('clear');
+
+    expect(_texts(session), ['hello']);
+    expect(session.lines.single.kind, LogKind.banner);
+  });
+
+  test('clear empties the log when there is no banner', () async {
+    final session = _session(FakeAppRepository());
     await session.submit('help');
 
     await session.submit('clear');
@@ -132,11 +142,11 @@ void main() {
     expect(session.lines.last.kind, LogKind.error);
   });
 
-  test('banner lines seed the log as output', () {
+  test('banner lines seed the log', () {
     final session = _session(FakeAppRepository(), banner: ['welcome']);
 
     expect(_texts(session), ['welcome']);
-    expect(session.lines.single.kind, LogKind.output);
+    expect(session.lines.single.kind, LogKind.banner);
   });
 
   test('date runs through the session clock, also via its alias', () async {

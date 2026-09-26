@@ -1,4 +1,6 @@
-enum LogKind { input, output, error }
+/// `banner` is the startup/`clear` greeting; the UI renders it as
+/// `AsciiBanner` instead of plain text (see `ui/terminal_log.dart`).
+enum LogKind { input, output, error, banner }
 
 class LogLine {
   const LogLine({

@@ -1,5 +1,7 @@
 import 'package:android_terminal_launcher/app.dart';
 import 'package:android_terminal_launcher/messages.dart';
+import 'package:android_terminal_launcher/services/font_size_choice.dart';
+import 'package:android_terminal_launcher/services/font_size_controller.dart';
 import 'package:android_terminal_launcher/services/theme_choice.dart';
 import 'package:android_terminal_launcher/services/theme_controller.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
@@ -19,6 +21,12 @@ ThemeController _themes() {
   return themes;
 }
 
+FontSizeController _fontSize() {
+  final fontSize = FontSizeController(store: InMemoryLocalStore());
+  addTearDown(fontSize.dispose);
+  return fontSize;
+}
+
 TerminalSession _session() {
   final session = TerminalSession(
     registry: CommandRegistry(defaultCommands),
@@ -31,14 +39,18 @@ TerminalSession _session() {
 
 void main() {
   testWidgets('app shows the welcome banner and the prompt', (tester) async {
-    await tester.pumpWidget(App(session: _session(), themes: _themes()));
+    await tester.pumpWidget(
+      App(session: _session(), themes: _themes(), fontSize: _fontSize()),
+    );
 
     expect(find.text(Messages.welcome), findsOneWidget);
     expect(find.text(Messages.prompt), findsOneWidget);
   });
 
   testWidgets('back is blocked so the launcher never exits', (tester) async {
-    await tester.pumpWidget(App(session: _session(), themes: _themes()));
+    await tester.pumpWidget(
+      App(session: _session(), themes: _themes(), fontSize: _fontSize()),
+    );
 
     expect(
       find.byWidgetPredicate((w) => w is PopScope && !w.canPop),
@@ -48,7 +60,9 @@ void main() {
 
   testWidgets('changing the theme restyles the running app', (tester) async {
     final themes = _themes();
-    await tester.pumpWidget(App(session: _session(), themes: themes));
+    await tester.pumpWidget(
+      App(session: _session(), themes: themes, fontSize: _fontSize()),
+    );
     Color background() =>
         Theme.of(tester.element(find.byType(Scaffold))).scaffoldBackgroundColor;
     final before = background();
@@ -60,9 +74,28 @@ void main() {
     expect(background(), themeFor(ThemeChoice.light).scaffoldBackgroundColor);
   });
 
+  testWidgets('changing the font size resizes text in the running app', (
+    tester,
+  ) async {
+    final fontSize = _fontSize();
+    await tester.pumpWidget(
+      App(session: _session(), themes: _themes(), fontSize: fontSize),
+    );
+    double promptSize() =>
+        tester.widget<Text>(find.text(Messages.prompt)).style!.fontSize!;
+    final before = promptSize();
+
+    await fontSize.select(FontSizeChoice.huge);
+    await tester.pump();
+
+    expect(promptSize(), greaterThan(before));
+  });
+
   testWidgets('system bars follow the theme', (tester) async {
     final themes = _themes();
-    await tester.pumpWidget(App(session: _session(), themes: themes));
+    await tester.pumpWidget(
+      App(session: _session(), themes: themes, fontSize: _fontSize()),
+    );
     SystemUiOverlayStyle? overlay() => tester
         .widget<AnnotatedRegion<SystemUiOverlayStyle>>(
           find.byType(AnnotatedRegion<SystemUiOverlayStyle>).first,

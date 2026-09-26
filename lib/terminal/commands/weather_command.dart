@@ -1,4 +1,5 @@
 import 'package:android_terminal_launcher/messages.dart';
+import 'package:android_terminal_launcher/services/app_info.dart';
 import 'package:android_terminal_launcher/services/local_store_exception.dart';
 import 'package:android_terminal_launcher/services/network_exception.dart';
 import 'package:android_terminal_launcher/services/weather.dart';
@@ -25,7 +26,26 @@ Command weatherCommand(Weather weather) => Command(
   examples: ['weather gothenburg', 'weather home malmö', 'weather'],
   notes: ['with no city, uses your home city', 'data from open-meteo.com'],
   run: (context) => _weather(weather, context.args),
+  argSuggestions: _suggestArgs,
 );
+
+/// There is no list of cities to offer, so this only ever suggests the `home`
+/// keyword and, once `home` is typed, `clear`.
+List<String> _suggestArgs(String partial, List<AppInfo> apps) {
+  final words = partial.split(' ');
+  if (words.length == 1) return _matching(words.first, const ['home']);
+  if (words.length == 2 && words.first.toLowerCase() == 'home') {
+    return [
+      for (final match in _matching(words[1], const ['clear'])) 'home $match',
+    ];
+  }
+  return const [];
+}
+
+List<String> _matching(String typed, List<String> options) => [
+  for (final option in options)
+    if (option.startsWith(typed.toLowerCase())) option,
+];
 
 Future<CommandResult> _weather(Weather weather, List<String> args) async {
   try {
