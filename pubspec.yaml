@@ -1,5 +1,5 @@
 name: android_terminal_launcher
-description: "A new Flutter project."
+description: "Terminal Launcher: an Android home-screen launcher that is a terminal. Type commands (open, list, cal, weather, note, texttv, call, ...) instead of tapping icons, with rich themed cards where a command has structured output. Works offline; built with Flutter."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

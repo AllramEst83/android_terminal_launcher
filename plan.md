@@ -51,3 +51,4 @@ Built and tested, but not recorded as tried on the phone: `sms` (test with your 
 
 - 2026-09-26: plan condensed now that Phases 0–9.3 are built. The old plan and its detailed changelog moved unedited to `.agents/archive/plan-through-phase-9.3.md`; this file now holds only status, what is next, and what was left out.
 - 2026-09-26: full migration to rich views. Every command that prints data or an acknowledgement now has a card, with its plain lines unchanged (all earlier tests pass as they were). See `.agents/architecture.md` ("Rich blocks") for the rules, notably run-versus-fill.
+- 2026-09-26: the app is named **Terminal Launcher** on the phone (`app_name` string resource; it was the package name `android_terminal_launcher`). `pubspec.yaml` description and the README (command table, permissions, layout) brought up to date. The Dart package name and application id are unchanged on purpose.
