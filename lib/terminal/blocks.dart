@@ -138,6 +138,7 @@ final class WeatherBlock extends RichBlock {
     required this.now,
     required this.days,
     this.note,
+    this.source,
   });
 
   /// `Gothenburg, Västra Götaland County, Sweden`.
@@ -146,6 +147,10 @@ final class WeatherBlock extends RichBlock {
   /// Set when the forecast is not for what was asked for (`no location,
   /// showing home`).
   final String? note;
+
+  /// Who the figures are from, which the data's licence asks to be shown:
+  /// `SMHI, measured at Göteborg A, 2 km`.
+  final String? source;
   final WeatherNow now;
 
   /// Today first.
@@ -478,4 +483,40 @@ class ContactNumber {
 
   /// Put in the prompt, ready for the text: `sms 0701234567 "`.
   final String smsCommand;
+}
+
+/// The newest messages in the inbox, newest first.
+final class MailBlock extends RichBlock {
+  const MailBlock({required this.summary, required this.rows});
+
+  /// `latest 20 of 1,234, 7 unread`.
+  final String summary;
+  final List<MailRow> rows;
+}
+
+class MailRow {
+  const MailRow({
+    required this.uid,
+    required this.sender,
+    required this.subject,
+    required this.when,
+    required this.unread,
+    this.removeCommand,
+  });
+
+  /// The server's id for the message; what a later action will go by.
+  final int uid;
+  final String sender;
+
+  /// Never empty (`(no subject)` stands in).
+  final String subject;
+
+  /// `14:05`, `Mon`, `12 Sep`; empty if the message has no date.
+  final String when;
+  final bool unread;
+
+  /// Put in the prompt (it moves the message out of the inbox): `mail rm
+  /// #48213`. By the server's id, so it means this message however the list
+  /// has changed since.
+  final String? removeCommand;
 }

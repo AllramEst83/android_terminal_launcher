@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Text TV, weather and currency rates (HTTPS only; nothing is cleartext). -->
+    <!-- Text TV, weather, currency rates (HTTPS only; nothing is cleartext) and
+         `mail` (IMAP over TLS, port 993). -->
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- Lets the `uninstall` command open Android's uninstall dialog (API 28+). -->

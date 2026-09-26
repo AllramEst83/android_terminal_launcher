@@ -33,6 +33,7 @@ Command textTvCommand(TextTv textTv) => Command(
     '  sport väder',
   ],
   run: (context) => _texttv(textTv, context.args),
+  spinner: true,
   argSuggestions: (partial, apps) => [
     if (!partial.contains(' '))
       for (final name in _shortcuts.keys)

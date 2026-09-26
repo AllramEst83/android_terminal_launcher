@@ -104,6 +104,34 @@ void main() {
     },
   );
 
+  test(
+    'an error status carries its code, and other failures carry none',
+    () async {
+      NetworkException? notFound;
+      NetworkException? broken;
+      NetworkException? tooBig;
+      try {
+        await fetcher().get(_url('/missing'));
+      } on NetworkException catch (error) {
+        notFound = error;
+      }
+      try {
+        await fetcher().get(_url('/broken'));
+      } on NetworkException catch (error) {
+        broken = error;
+      }
+      try {
+        await fetcher(maxBytes: 1000).get(_url('/big'));
+      } on NetworkException catch (error) {
+        tooBig = error;
+      }
+
+      expect(notFound?.statusCode, 404);
+      expect(broken?.statusCode, 500);
+      expect(tooBig?.statusCode, isNull);
+    },
+  );
+
   test('a body over the limit is refused', () async {
     await expectLater(
       fetcher(maxBytes: 1000).get(_url('/big')),

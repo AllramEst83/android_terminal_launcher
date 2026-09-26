@@ -43,6 +43,19 @@ final class CommandFailure extends CommandResult {
   final RichBlock? block;
 }
 
+/// Asks for a secret (a password) as the next line the user types. The
+/// session shows [prompt], hides the field, and passes what is typed to
+/// [then] without ever putting it in the log; an empty line cancels instead.
+/// [then] gives the result to show, and may ask again. [busy] shows the spinner
+/// while [then] runs, for one that goes online.
+final class CommandAskSecret extends CommandResult {
+  const CommandAskSecret(this.prompt, this.then, {this.busy = false});
+
+  final String prompt;
+  final Future<CommandResult> Function(String secret) then;
+  final bool busy;
+}
+
 final class CommandClear extends CommandResult {
   const CommandClear();
 }

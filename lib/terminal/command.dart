@@ -48,6 +48,7 @@ class Command {
     this.examples = const [],
     this.notes = const [],
     this.argSuggestions,
+    this.spinner = false,
   });
 
   final String name;
@@ -73,6 +74,11 @@ class Command {
 
   /// Null when the command has nothing useful to suggest for its arguments.
   final ArgSuggester? argSuggestions;
+
+  /// Set for a command that waits on the network or a slow service, so the
+  /// log shows a spinner while it runs (after a short delay, so a quick answer
+  /// never flashes one). Leave it off for anything that answers at once.
+  final bool spinner;
 }
 
 /// Commands that belong together (one provider's), in the provider's order.

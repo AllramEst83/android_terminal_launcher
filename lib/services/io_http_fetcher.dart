@@ -35,6 +35,7 @@ class IoHttpFetcher implements HttpFetcher {
         await response.drain<void>().timeout(timeout);
         throw NetworkException(
           '${url.host} answered with status ${response.statusCode}',
+          statusCode: response.statusCode,
         );
       }
       final body = BytesBuilder(copy: false);

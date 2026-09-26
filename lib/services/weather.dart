@@ -106,19 +106,63 @@ class DayForecast {
 }
 
 class Forecast {
-  const Forecast({required this.place, required this.now, required this.days});
+  const Forecast({
+    required this.place,
+    required this.now,
+    required this.days,
+    this.source = 'Open-Meteo',
+    this.station,
+    this.problem,
+  });
 
   final Place place;
   final Conditions now;
 
   /// Today first.
   final List<DayForecast> days;
+
+  /// Who the figures are from, which the report must credit: `SMHI`,
+  /// `Open-Meteo`.
+  final String source;
+
+  /// Where the current conditions were measured, when they were (`Göteborg A,
+  /// 2 km`), instead of taken from the forecast.
+  final String? station;
+
+  /// Why the preferred source was not used, when it should have been (it broke,
+  /// as opposed to simply not covering the place). Shown, so a fallback is
+  /// never silent about something that is wrong.
+  final String? problem;
+
+  /// This forecast with [problem] added.
+  Forecast withProblem(String problem) => Forecast(
+    place: place,
+    now: now,
+    days: days,
+    source: source,
+    station: station,
+    problem: problem,
+  );
 }
 
-/// Weather from Open-Meteo (https://open-meteo.com): free, no key. Places come
-/// from its geocoding service. Also remembers one home place.
+/// Somewhere a forecast can come from. [Weather] asks its preferred one first
+/// and falls back to Open-Meteo when that cannot answer.
+abstract interface class ForecastSource {
+  /// The forecast for [place]. Throws [NetworkException] when there is none to
+  /// give: out of its area, unreachable, or an answer it could not read.
+  Future<Forecast> forecast(Place place);
+}
+
+/// Weather: places come from Open-Meteo's geocoding service, and forecasts from
+/// [preferred] when there is one and it can answer, else from Open-Meteo
+/// (https://open-meteo.com, free, no key). Also remembers one home place.
 class Weather {
-  Weather({required this._fetcher, required this._store, this._days = 5});
+  Weather({
+    required this._fetcher,
+    required this._store,
+    this._days = 5,
+    this._preferred,
+  });
 
   static const homeKey = 'weather.home';
 
@@ -127,6 +171,9 @@ class Weather {
 
   /// How many days the forecast covers, today included.
   final int _days;
+
+  /// Tried first for every forecast (SMHI, which is better where it reaches).
+  final ForecastSource? _preferred;
 
   /// The best match for [name], or null when there is none. Throws
   /// [NetworkException] when the service cannot be reached or misbehaves.
@@ -161,6 +208,25 @@ class Weather {
   }
 
   Future<Forecast> forecast(Place place) async {
+    final preferred = _preferred;
+    if (preferred != null) {
+      try {
+        return await preferred.forecast(place);
+      } on NetworkException catch (error) {
+        // Outside its area (a 404), or it is down: Open-Meteo covers the
+        // world. Out of area is normal and unremarkable; anything else is
+        // reported with the answer, since the user would otherwise never know
+        // the better source was failing.
+        final forecast = await _openMeteo(place);
+        return error.statusCode == 404
+            ? forecast
+            : forecast.withProblem(error.message);
+      }
+    }
+    return _openMeteo(place);
+  }
+
+  Future<Forecast> _openMeteo(Place place) async {
     final json = await _json(
       Uri.https('api.open-meteo.com', '/v1/forecast', {
         'latitude': '${place.latitude}',

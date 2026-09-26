@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:collection';
 
 import 'package:android_terminal_launcher/messages.dart';
@@ -30,6 +31,7 @@ class TerminalSession extends ChangeNotifier {
     this._clock = systemNow,
     this._suggester = const Suggester(),
     this._suggestRetryDelay = const Duration(seconds: 5),
+    this._spinnerDelay = const Duration(milliseconds: 250),
     this._banner = const [],
     this._view,
   }) {
@@ -43,6 +45,9 @@ class TerminalSession extends ChangeNotifier {
   final DateTime Function() _clock;
   final Suggester _suggester;
   final Duration _suggestRetryDelay;
+
+  /// How long a command tagged `spinner` may run before the log shows one.
+  final Duration _spinnerDelay;
 
   /// Shown again after `clear`, not just at startup, so the screen never
   /// stays truly blank.
@@ -58,7 +63,18 @@ class TerminalSession extends ChangeNotifier {
   bool _disposed = false;
   DateTime? _appListFailedAt;
 
+  /// What the prompt sends when Enter is pressed: the answer to a hidden
+  /// prompt if one is open, else a command line.
+  Future<void> submitFromPrompt(String input) {
+    final asked = _pendingSecret;
+    return asked == null ? submit(input) : _answerSecret(input, asked);
+  }
+
+  /// Runs [input] as a command line. Anything else that arrives while a hidden
+  /// prompt is open (a tap on a card) is a command, never the secret: it
+  /// abandons the question.
   Future<void> submit(String input) async {
+    _pendingSecret = null;
     final trimmed = input.trim();
     if (trimmed.isEmpty) return;
 
@@ -83,13 +99,16 @@ class TerminalSession extends ChangeNotifier {
 
     final CommandResult result;
     try {
-      result = await command.run(
-        CommandContext(
-          args: parsed.args,
-          apps: _apps,
-          commands: _registry.commands,
-          groups: _registry.groups,
-          now: _clock,
+      result = await _withSpinner(
+        command.spinner,
+        () => command.run(
+          CommandContext(
+            args: parsed.args,
+            apps: _apps,
+            commands: _registry.commands,
+            groups: _registry.groups,
+            now: _clock,
+          ),
         ),
       );
     } on Object catch (error) {
@@ -101,7 +120,64 @@ class TerminalSession extends ChangeNotifier {
       return;
     }
     if (_disposed) return;
+    _show(result);
+    notifyListeners();
+  }
 
+  /// Runs [work]. With [spinner], a progress line is in the log while it runs
+  /// once it has taken longer than the delay, so a quick answer never flashes
+  /// one. The line is gone when this returns or throws; the caller announces
+  /// that together with what it adds, so the two arrive in one frame.
+  Future<T> _withSpinner<T>(bool spinner, Future<T> Function() work) async {
+    if (!spinner) return work();
+    int? shown;
+    final timer = Timer(_spinnerDelay, () {
+      if (_disposed) return;
+      shown = _nextId;
+      _append(LogKind.progress, Messages.working);
+      notifyListeners();
+    });
+    try {
+      return await work();
+    } finally {
+      timer.cancel();
+      final id = shown;
+      if (id != null) _lines.removeWhere((line) => line.id == id);
+    }
+  }
+
+  /// Whether the next line typed is a secret: the field should hide it and
+  /// offer no suggestions.
+  bool get askingSecret => _pendingSecret != null;
+  CommandAskSecret? _pendingSecret;
+
+  /// Takes the line typed at a hidden prompt. It is never logged, only its
+  /// placeholder is, and an empty line cancels.
+  Future<void> _answerSecret(String input, CommandAskSecret asked) async {
+    _pendingSecret = null;
+    if (input.trim().isEmpty) {
+      _append(LogKind.error, Messages.secretCancelled);
+      notifyListeners();
+      return;
+    }
+    _append(LogKind.input, '${Messages.prompt}${Messages.secretEcho}');
+    notifyListeners();
+    final CommandResult result;
+    try {
+      result = await _withSpinner(asked.busy, () => asked.then(input.trim()));
+    } on Object catch (error) {
+      if (_disposed) return;
+      _append(LogKind.error, Messages.commandFailed(error));
+      notifyListeners();
+      return;
+    }
+    if (_disposed) return;
+    _show(result);
+    notifyListeners();
+  }
+
+  /// Adds what a command returned to the log. The caller notifies.
+  void _show(CommandResult result) {
     final rich = (_view?.current ?? ViewMode.rich) == ViewMode.rich;
     switch (result) {
       case CommandOutput(:final lines, :final block?) when rich:
@@ -129,8 +205,10 @@ class TerminalSession extends ChangeNotifier {
       case CommandClear():
         _lines.clear();
         _showBanner();
+      case CommandAskSecret():
+        _append(LogKind.output, result.prompt);
+        _pendingSecret = result;
     }
-    notifyListeners();
   }
 
   void _showBanner() {
@@ -142,7 +220,8 @@ class TerminalSession extends ChangeNotifier {
   /// Completions for [input] as typed so far. Never throws: if the app list
   /// cannot be loaded, argument suggestions are simply empty.
   Future<List<Suggestion>> suggest(String input) async {
-    if (input.trim().isEmpty) return const [];
+    // Nothing may look at a secret as it is typed, and it is not a command.
+    if (input.trim().isEmpty || askingSecret) return const [];
     final apps = await _appsForSuggestions();
     try {
       return _suggester.suggest(

@@ -2,12 +2,12 @@
 
 An Android home-screen launcher that *is* a terminal. Type `open firefox`,
 `list` or `help` instead of tapping icons. Where a command has structured
-output (a calendar, the weather, a phone book, Text TV) it is drawn as a themed
-card you can tap; `ui plain` turns that off for a classic text terminal. Built
-with Flutter.
+output (a calendar, the weather, a phone book, your inbox, Text TV) it is drawn
+as a themed card you can tap; `ui plain` turns that off for a classic text
+terminal. Built with Flutter.
 
 Everything works offline (the font is bundled; notes and settings are stored on
-the device) except Text TV, weather and live currency rates; currency
+the device) except Text TV, weather, mail and live currency rates; currency
 conversion falls back to saved rates when offline.
 
 ## Screenshots
@@ -59,8 +59,9 @@ palette.
 | `calc <expr>` | Calculate, e.g. `calc 2*(3+4)^2`, `calc sqrt(16)+pi` |
 | `convert <n> <from> <to>` | Units or money, e.g. `convert 5 km mi`, `convert 100 usd sek`; `convert units`, `convert currencies` |
 | `texttv [page]` | Swedish Text TV in colour, with its logos and tappable page numbers: `texttv 104`, `texttv utrikes`, `texttv 130 2` |
-| `weather [city]` | Weather and a 5-day forecast; with no city, uses your location (or your saved home city); `weather home <city>` saves one |
+| `weather [city]` | Weather and a 5-day forecast, from SMHI (with the nearest station's measurements) across northern Europe and from Open-Meteo elsewhere; with no city, uses your location (or your saved home city); `weather home <city>` saves one |
 | `cal [day\|week\|month]` | Your phone's calendar (read-only): a month card, or an agenda for a day or week |
+| `mail [rm <n>\|setup <email>\|forget]` | Your 20 newest emails; `mail rm 3` moves one to Trash. `mail setup you@gmail.com` asks for an app password on a hidden line (see [Mail](#mail)); `mail forget` removes the account |
 | `contact <name>` / `contact list` | Look up a contact; each number has `call` and `sms` buttons |
 | `call <name or number>` | Call (or open the dialer if the permission is refused) |
 | `sms <name or number> "text"` | Send a text message |
@@ -73,6 +74,10 @@ palette.
 
 Quote text with spaces: `note add "buy milk"`.
 
+A command that goes online (`weather`, `texttv`, `mail`) shows a turning `[|]`
+in the log while it waits, if it takes more than a moment. Quick commands never
+show one.
+
 A strip above the prompt suggests command names and, after `open ` or
 `uninstall `, matching apps. Tapping a suggestion fills the input; Enter runs it.
 Buttons in cards work the same way where a stray tap could do harm: `call`,
@@ -82,9 +87,38 @@ for you to check and send.
 ## Permissions
 
 Asked for the first time a command needs them, and never otherwise: internet
-(Text TV, weather, rates), location (`weather`), calendar (`cal`), contacts
-(`contact`, `call`, `sms`), phone (`call`) and SMS (`sms`). Refuse one and only
-that command is affected.
+(Text TV, weather, rates, mail), location (`weather`), calendar (`cal`),
+contacts (`contact`, `call`, `sms`), phone (`call`) and SMS (`sms`). Refuse one
+and only that command is affected.
+
+## Mail
+
+`mail` reads the newest 20 messages over IMAP: sender, subject, time, and a dot
+on the unread ones, each with a number. `mail rm 3` moves message 3 of the last
+list to your Trash folder, so it can be got back: it never deletes anything
+outright, refuses if the server has no Trash, and goes by the server's message
+id, so mail arriving in between cannot make it hit another message. The bin on a
+card row only puts `mail rm #<id>` in the prompt for you to check and send.
+Nothing else in the app changes your mailbox.
+
+It signs in with an **app password**, not your normal one: for Gmail, turn on
+2-step verification and create one under Google account, Security, App
+passwords. Run `mail setup you@gmail.com`, then paste it on the hidden line the
+terminal shows (spaces are ignored; an empty line cancels). The server is known
+for Gmail, iCloud, Yahoo, AOL, Fastmail, Zoho and GMX; for any other provider
+add it: `mail setup you@example.org imap.example.org`. Outlook.com and Hotmail
+no longer accept app passwords, so they do not work.
+
+The address and password are stored together in the Android Keystore (through
+`flutter_secure_storage`), never in the log, and `mail forget` deletes them.
+
+## Data sources
+
+Weather is from [SMHI](https://opendata.smhi.se) (forecast and observations,
+CC BY 4.0) where it reaches, and from [Open-Meteo](https://open-meteo.com)
+elsewhere and whenever SMHI cannot answer; places are found with Open-Meteo's
+geocoder. Every report says which it used. Text TV is from texttv.nu, rates from
+frankfurter.app.
 
 ## Development
 
@@ -109,7 +143,7 @@ names; changing them is a much larger job for no visible gain.
 ## Layout
 
 - `lib/terminal/` — pure-Dart core: tokenizer, registry, commands, session, and the rich-block values commands return
-- `lib/services/` — service interfaces (apps, calendar, contacts, weather, ...) and their Android or network implementations
+- `lib/services/` — service interfaces (apps, calendar, contacts, weather, mail, ...) and their Android or network implementations
 - `lib/ui/` — widgets that render session state and forward input, including the card views
 - `android/` — manifest and the Kotlin channel handlers (apps, permissions, location, calendar, contacts, phone, SMS)
 - `test/` — mirrors `lib/`; `test/fakes/` holds the fakes

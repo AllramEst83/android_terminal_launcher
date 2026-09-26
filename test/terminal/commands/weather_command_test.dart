@@ -57,7 +57,7 @@ class _Rig {
 List<String> _lines(CommandResult result) => switch (result) {
   CommandOutput(:final lines) => lines,
   CommandFailure(:final lines) => lines,
-  CommandClear() => fail('unexpected clear'),
+  CommandClear() || CommandAskSecret() => fail('unexpected clear'),
 };
 
 void main() {
@@ -76,6 +76,7 @@ void main() {
         'Sat   14/17° Light drizzle 0.1mm',
         'Sun   13/18° Overcast',
         'Mon   13/17° Light drizzle 0.2mm',
+        'Open-Meteo',
       ]);
     });
 

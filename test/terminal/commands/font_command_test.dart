@@ -18,7 +18,7 @@ Future<CommandResult> _font(FakeFontSizeSettings settings, List<String> args) {
 List<String> _lines(CommandResult result) => switch (result) {
   CommandOutput(:final lines) => lines,
   CommandFailure(:final lines) => lines,
-  CommandClear() => fail('unexpected clear'),
+  CommandClear() || CommandAskSecret() => fail('unexpected clear'),
 };
 
 void main() {

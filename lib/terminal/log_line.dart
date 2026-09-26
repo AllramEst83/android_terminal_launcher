@@ -2,8 +2,10 @@ import 'package:android_terminal_launcher/services/styled_text.dart';
 import 'package:android_terminal_launcher/terminal/blocks.dart';
 
 /// `banner` is the startup/`clear` greeting; the UI renders it as
-/// `AsciiBanner` instead of plain text (see `ui/terminal_log.dart`).
-enum LogKind { input, output, error, banner }
+/// `AsciiBanner` instead of plain text (see `ui/terminal_log.dart`). `progress`
+/// is the spinner shown while a slow command runs; the session removes it when
+/// the command is done, and the UI draws it turning.
+enum LogKind { input, output, error, banner, progress }
 
 class LogLine {
   const LogLine({

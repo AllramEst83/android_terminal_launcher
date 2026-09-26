@@ -2,6 +2,7 @@ import 'package:android_terminal_launcher/terminal/log_line.dart';
 import 'package:android_terminal_launcher/terminal/terminal_session.dart';
 import 'package:android_terminal_launcher/ui/ascii_banner.dart';
 import 'package:android_terminal_launcher/ui/block_view.dart';
+import 'package:android_terminal_launcher/ui/spinner_text.dart';
 import 'package:android_terminal_launcher/ui/tv_row.dart';
 import 'package:flutter/material.dart';
 
@@ -120,7 +121,7 @@ class _LogLineView extends StatelessWidget {
       LogKind.input => base?.copyWith(fontWeight: FontWeight.bold),
       // Banners are rendered by `AsciiBanner` before reaching here; the case
       // only keeps the switch exhaustive.
-      LogKind.output || LogKind.banner => base,
+      LogKind.output || LogKind.banner || LogKind.progress => base,
       LogKind.error => base?.copyWith(color: colors.error),
     };
     // An empty Text can collapse to no height, and a blank line is content.
@@ -128,7 +129,9 @@ class _LogLineView extends StatelessWidget {
     final columns = line.columns;
     final isGrid = columns != null;
     final runs = line.runs;
-    final text = columns == null
+    final text = line.kind == LogKind.progress
+        ? SpinnerText(style: style)
+        : columns == null
         ? Text(shown, style: style)
         : runs != null
         ? TvRow(runs: runs, columns: columns, style: style, onRun: onRun)

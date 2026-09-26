@@ -31,10 +31,15 @@ DateTime addDays(DateTime day, int days) =>
 /// The Monday on or before [day].
 DateTime startOfWeek(DateTime day) => addDays(day, 1 - day.weekday);
 
+/// `Sep`.
+String shortMonth(DateTime day) => _months[day.month - 1].substring(0, 3);
+
+/// `Mon`.
+String shortWeekday(DateTime day) => _weekdays[day.weekday - 1];
+
 /// `Sat 26 Sep`.
 String dayLabel(DateTime day) =>
-    '${_weekdays[day.weekday - 1]} ${day.day} '
-    '${_months[day.month - 1].substring(0, 3)}';
+    '${shortWeekday(day)} ${day.day} ${shortMonth(day)}';
 
 /// `Sat 26 Sep 2026`.
 String dayHeading(DateTime day) => '${dayLabel(day)} ${day.year}';

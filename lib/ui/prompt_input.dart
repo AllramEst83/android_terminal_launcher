@@ -15,6 +15,7 @@ class PromptInput extends StatefulWidget {
     required this.onSubmit,
     required this.onSuggest,
     this.filler,
+    this.obscure = false,
   });
 
   final Future<void> Function(String input) onSubmit;
@@ -22,6 +23,11 @@ class PromptInput extends StatefulWidget {
 
   /// Lets buttons elsewhere on screen put a command in this prompt.
   final PromptFiller? filler;
+
+  /// Hides what is typed and switches off everything that reads it (the
+  /// keyboard's suggestions and learning, the double-space rule): the line is a
+  /// password.
+  final bool obscure;
 
   @override
   State<PromptInput> createState() => _PromptInputState();
@@ -118,11 +124,15 @@ class _PromptInputState extends State<PromptInput> with WidgetsBindingObserver {
                   controller: _controller,
                   focusNode: _focusNode,
                   autofocus: true,
+                  obscureText: widget.obscure,
+                  enableIMEPersonalizedLearning: !widget.obscure,
                   autocorrect: false,
                   enableSuggestions: false,
                   textCapitalization: TextCapitalization.none,
                   textInputAction: TextInputAction.done,
-                  inputFormatters: const [DoubleSpaceFormatter()],
+                  inputFormatters: widget.obscure
+                      ? const []
+                      : const [DoubleSpaceFormatter()],
                   style: style,
                   cursorColor: theme.colorScheme.primary,
                   cursorWidth: 8,

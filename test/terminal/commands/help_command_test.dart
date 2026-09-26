@@ -52,7 +52,7 @@ Future<List<String>> _help(
   return switch (result) {
     CommandOutput(:final lines) => lines,
     CommandFailure(:final lines) => lines,
-    CommandClear() => fail('unexpected clear'),
+    CommandClear() || CommandAskSecret() => fail('unexpected clear'),
   };
 }
 

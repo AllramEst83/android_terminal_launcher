@@ -40,11 +40,13 @@ WeatherDay _day(
 WeatherBlock _block({
   String place = 'Gothenburg, Västra Götaland County, Sweden',
   String? note,
+  String? source,
   WeatherNow now = _now,
   List<WeatherDay>? days,
 }) => WeatherBlock(
   place: place,
   note: note,
+  source: source,
   now: now,
   days:
       days ??
@@ -98,6 +100,52 @@ void main() {
       ]) {
         expect(find.text(text), findsOneWidget, reason: text);
       }
+    });
+
+    testWidgets('credits its source under the days, when it has one', (
+      tester,
+    ) async {
+      await _pump(tester, _block(source: 'SMHI, measured at Göteborg A, 2 km'));
+
+      final credit = find.text('SMHI, measured at Göteborg A, 2 km');
+      expect(credit, findsOneWidget);
+      expect(
+        tester.getTopLeft(credit).dy,
+        greaterThan(
+          tester.getBottomLeft(find.byKey(weatherDayKey('Sun'))).dy - 1,
+        ),
+      );
+    });
+
+    testWidgets('says which provider failed when the better one broke', (
+      tester,
+    ) async {
+      await _pump(
+        tester,
+        _block(
+          source: 'Open-Meteo (SMHI failed: smhi.se did not answer in time)',
+        ),
+        width: 320,
+      );
+
+      expect(
+        find.text('Open-Meteo (SMHI failed: smhi.se did not answer in time)'),
+        findsOneWidget,
+      );
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a long credit wraps rather than overflowing', (tester) async {
+      await _pump(
+        tester,
+        _block(
+          source: 'SMHI, measured at Göteborg-Landvetter Flygplats, 14 km',
+        ),
+        width: 320,
+        fontSize: FontSizeChoice.huge,
+      );
+
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('has no note line when there is no note', (tester) async {

@@ -9,9 +9,13 @@ import 'package:android_terminal_launcher/services/android_phone_service.dart';
 import 'package:android_terminal_launcher/services/android_sms_service.dart';
 import 'package:android_terminal_launcher/services/currency_rates.dart';
 import 'package:android_terminal_launcher/services/entry_store.dart';
+import 'package:android_terminal_launcher/services/flutter_secret_store.dart';
 import 'package:android_terminal_launcher/services/font_size_controller.dart';
+import 'package:android_terminal_launcher/services/imap_mail_service.dart';
 import 'package:android_terminal_launcher/services/io_http_fetcher.dart';
+import 'package:android_terminal_launcher/services/mail_account.dart';
 import 'package:android_terminal_launcher/services/shared_preferences_local_store.dart';
+import 'package:android_terminal_launcher/services/smhi.dart';
 import 'package:android_terminal_launcher/services/text_tv.dart';
 import 'package:android_terminal_launcher/services/theme_controller.dart';
 import 'package:android_terminal_launcher/services/view_mode_controller.dart';
@@ -21,6 +25,7 @@ import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/providers/appearance_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/calendar_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/info_provider.dart';
+import 'package:android_terminal_launcher/terminal/providers/mail_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/notes_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/phone_provider.dart';
 import 'package:android_terminal_launcher/terminal/terminal_session.dart';
@@ -55,7 +60,11 @@ Future<void> main() async {
       ),
       InfoProvider(
         textTv: TextTv(fetcher: fetcher),
-        weather: Weather(fetcher: fetcher, store: store),
+        weather: Weather(
+          fetcher: fetcher,
+          store: store,
+          preferred: Smhi(fetcher: fetcher),
+        ),
         location: AndroidLocationService(permissions: permissions),
       ),
       CalendarProvider(AndroidCalendarService(permissions: permissions)),
@@ -63,6 +72,9 @@ Future<void> main() async {
         contacts: AndroidContactsService(permissions: permissions),
         phone: AndroidPhoneService(permissions: permissions),
         sms: AndroidSmsService(permissions: permissions),
+      ),
+      MailProvider(
+        ImapMailService(accounts: MailAccountStore(FlutterSecretStore())),
       ),
       AppearanceProvider(themes, fontSize, view),
       NotesProvider(

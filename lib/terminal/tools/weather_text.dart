@@ -1,8 +1,8 @@
 import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/number_format.dart';
 
-/// Plain-words descriptions of WMO weather codes, as Open-Meteo reports them.
-/// Kept short: a forecast line has to fit a phone screen.
+/// Plain-words descriptions of WMO weather codes, as Open-Meteo reports them
+/// (plus the sleet ones SMHI's symbols map to). Kept short: a forecast line has to fit a phone screen.
 const _descriptions = {
   0: 'Clear sky',
   1: 'Mainly clear',
@@ -20,6 +20,8 @@ const _descriptions = {
   65: 'Heavy rain',
   66: 'Freezing rain',
   67: 'Freezing rain',
+  68: 'Light sleet',
+  69: 'Heavy sleet',
   71: 'Light snow',
   73: 'Snow',
   75: 'Heavy snow',
@@ -27,6 +29,8 @@ const _descriptions = {
   80: 'Light showers',
   81: 'Showers',
   82: 'Heavy showers',
+  83: 'Sleet showers',
+  84: 'Heavy sleet',
   85: 'Snow showers',
   86: 'Heavy snow showers',
   95: 'Thunderstorm',
@@ -54,6 +58,8 @@ WeatherKind weatherKind(int code) => switch (code) {
   >= 51 && <= 57 => WeatherKind.drizzle,
   >= 61 && <= 67 || >= 80 && <= 82 => WeatherKind.rain,
   >= 71 && <= 77 || 85 || 86 => WeatherKind.snow,
+  // Sleet has no picture of its own: wet snow is the nearest.
+  68 || 69 || 83 || 84 => WeatherKind.snow,
   >= 95 && <= 99 => WeatherKind.thunder,
   _ => WeatherKind.cloudy,
 };

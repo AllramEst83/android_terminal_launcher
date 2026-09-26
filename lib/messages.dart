@@ -91,6 +91,17 @@ abstract final class Messages {
   static const weatherSaveHome = 'or save one: weather home <city>';
   static const weatherUsingHome = 'no location, showing home';
   static const weatherToday = 'Today';
+
+  /// The credit line under a forecast (SMHI's data licence asks for one).
+  static String weatherSource(
+    String source,
+    String? station, {
+    String? problem,
+  }) {
+    final credit = station == null ? source : '$source, measured at $station';
+    return problem == null ? credit : '$credit (SMHI failed: $problem)';
+  }
+
   static String weatherNow(String words, String temp, String feels) =>
       '$words, $temp (feels $feels)';
   static String weatherWind(String speed, String point, int humidity) =>
@@ -208,4 +219,60 @@ abstract final class Messages {
   static String opening(String label) => 'opening $label';
   static String launchFailed(String label) => 'could not launch $label';
   static String commandFailed(Object error) => 'error: $error';
+
+  /// What the log shows in place of a secret typed at a hidden prompt: always
+  /// the same length, so it does not give the password's away.
+  static const secretEcho = '••••••••';
+  static const secretCancelled = 'cancelled';
+
+  /// The text of the spinner line, for what reads the log without drawing it
+  /// (the UI shows a turning bar in its place).
+  static const working = '[|]';
+
+  static const mailUsage = [
+    'usage: mail',
+    '       mail rm <number>',
+    '       mail setup <email> [server]',
+    '       mail forget',
+    'try: help mail',
+  ];
+  static const mailNoList = 'no list to go by yet (run: mail)';
+  static String mailNoSuchNumber(int number, int count) =>
+      'no message $number in the last list (1-$count)';
+  static String mailNotInList(int uid) =>
+      'message #$uid is not in the last list';
+  static String mailMoved(String subject, String folder) =>
+      'moved to $folder: $subject';
+  static const mailMovedTip = 'it is in Trash if you want it back';
+  static const mailAlreadyMoved = 'already moved to Trash';
+  static const mailGone = 'that message is no longer in the inbox';
+  static const mailNotSetUp = 'no mail account yet';
+  static const mailHowToSetUp = 'set one up: mail setup <email>';
+  static String mailError(String reason) => 'mail: $reason';
+  static String mailBadAddress(String text) =>
+      "'$text' is not an email address";
+  static String mailNoServer(String domain) =>
+      "don't know the mail server for $domain";
+  static const mailGiveServer = 'add it: mail setup <email> <server>';
+  static String mailPasswordPrompt(String email) =>
+      'app password for $email (hidden; Enter alone cancels):';
+  static String mailSetUp(String email) => 'reading mail as $email';
+  static const mailTry = 'try: mail';
+  static const mailForgotten = 'mail account removed from this phone';
+  static const mailNothingToForget = 'no mail account to remove';
+  static const mailEmpty = 'the inbox is empty';
+  static const mailNoSubject = '(no subject)';
+
+  /// [total] arrives already written for reading (`1,234`).
+  static String mailSummary(
+    int shown,
+    int total,
+    String totalText,
+    int unread,
+  ) {
+    final count = shown < total
+        ? 'latest $shown of $totalText'
+        : (total == 1 ? '1 message' : '$totalText messages');
+    return unread > 0 ? '$count, $unread unread' : count;
+  }
 }

@@ -34,10 +34,14 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   onFill: _filler.fill,
                 ),
               ),
-              PromptInput(
-                onSubmit: widget.session.submit,
-                onSuggest: widget.session.suggest,
-                filler: _filler,
+              ListenableBuilder(
+                listenable: widget.session,
+                builder: (context, _) => PromptInput(
+                  onSubmit: widget.session.submitFromPrompt,
+                  onSuggest: widget.session.suggest,
+                  filler: _filler,
+                  obscure: widget.session.askingSecret,
+                ),
               ),
             ],
           ),

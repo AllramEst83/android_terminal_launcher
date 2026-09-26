@@ -33,9 +33,11 @@ Command weatherCommand(Weather weather, LocationService location) => Command(
     'with no city, uses your location',
     'or your home city, if it fails',
     '--plain: text only, this once',
-    'data from open-meteo.com',
+    'data from SMHI where it reaches,',
+    '  else open-meteo.com',
   ],
   run: (context) => _weather(weather, location, context.args),
+  spinner: true,
   argSuggestions: _suggestArgs,
 );
 
@@ -168,6 +170,11 @@ List<String> _report(Forecast forecast) {
     ),
     for (var i = 0; i < forecast.days.length; i++)
       _day(forecast.days[i], i == 0),
+    Messages.weatherSource(
+      forecast.source,
+      forecast.station,
+      problem: forecast.problem,
+    ),
   ];
 }
 

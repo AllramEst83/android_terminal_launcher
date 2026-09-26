@@ -16,6 +16,11 @@ WeatherBlock weatherBlock(Forecast forecast, {String? note}) {
   return WeatherBlock(
     place: forecast.place.label,
     note: note,
+    source: Messages.weatherSource(
+      forecast.source,
+      forecast.station,
+      problem: forecast.problem,
+    ),
     now: WeatherNow(
       kind: weatherKind(now.code),
       description: describeWeather(now.code),

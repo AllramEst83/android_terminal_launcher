@@ -5,6 +5,7 @@ import 'package:android_terminal_launcher/ui/choice_view.dart';
 import 'package:android_terminal_launcher/ui/contacts_view.dart';
 import 'package:android_terminal_launcher/ui/entries_view.dart';
 import 'package:android_terminal_launcher/ui/help_view.dart';
+import 'package:android_terminal_launcher/ui/mail_view.dart';
 import 'package:android_terminal_launcher/ui/month_view.dart';
 import 'package:android_terminal_launcher/ui/notice_view.dart';
 import 'package:android_terminal_launcher/ui/result_view.dart';
@@ -71,6 +72,7 @@ class BlockView extends StatelessWidget {
             block: contacts,
             onFill: onFill,
           ),
+          final MailBlock mail => MailView(block: mail, onFill: onFill),
         },
       ),
     );

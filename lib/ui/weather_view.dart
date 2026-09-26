@@ -101,6 +101,10 @@ class WeatherView extends StatelessWidget {
             for (final day in block.days)
               _DayRow(day: day, coldest: coldest, warmest: warmest),
           ],
+          if (block.source != null) ...[
+            const SizedBox(height: 6),
+            Text(block.source!, style: small),
+          ],
         ],
       ),
     );
