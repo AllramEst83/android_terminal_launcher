@@ -81,13 +81,24 @@ ThemeData themeFor(
       surface: palette.background,
       onSurface: palette.foreground,
     ),
-    textTheme: ThemeData(brightness: palette.brightness).textTheme.apply(
+    // `ThemeData.textTheme` carries no font sizes on recent Flutter (they are
+    // filled in later, per locale), and `apply(fontSizeFactor:)` needs them,
+    // so start from the English-like geometry, which has sizes.
+    textTheme: _baseTextTheme(palette.brightness).apply(
       fontFamily: 'JetBrainsMono',
       bodyColor: palette.foreground,
       displayColor: palette.foreground,
       fontSizeFactor: _scaleFor(fontSize),
     ),
   );
+}
+
+TextTheme _baseTextTheme(Brightness brightness) {
+  final typography = Typography.material2021(platform: TargetPlatform.android);
+  final colors = brightness == Brightness.dark
+      ? typography.white
+      : typography.black;
+  return colors.merge(typography.englishLike);
 }
 
 /// Status and navigation bars that blend into [theme]: transparent status bar,

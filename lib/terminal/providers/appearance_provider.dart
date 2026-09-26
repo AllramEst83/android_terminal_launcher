@@ -17,8 +17,5 @@ class AppearanceProvider implements CommandProvider {
   String get name => 'appearance';
 
   @override
-  List<Command> get commands => [
-    themeCommand(_theme),
-    fontCommand(_fontSize),
-  ];
+  List<Command> get commands => [themeCommand(_theme), fontCommand(_fontSize)];
 }

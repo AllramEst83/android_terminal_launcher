@@ -24,8 +24,8 @@ class TerminalSession extends ChangeNotifier {
     this._clock = systemNow,
     this._suggester = const Suggester(),
     this._suggestRetryDelay = const Duration(seconds: 5),
-    List<String> banner = const [],
-  }) : _banner = banner {
+    this._banner = const [],
+  }) {
     _showBanner();
   }
 

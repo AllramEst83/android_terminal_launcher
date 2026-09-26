@@ -88,7 +88,9 @@ class _LogLineView extends StatelessWidget {
     final base = theme.textTheme.bodyLarge;
     final style = switch (line.kind) {
       LogKind.input => base?.copyWith(fontWeight: FontWeight.bold),
-      LogKind.output => base,
+      // Banners are rendered by `AsciiBanner` before reaching here; the case
+      // only keeps the switch exhaustive.
+      LogKind.output || LogKind.banner => base,
       LogKind.error => base?.copyWith(color: colors.error),
     };
     // An empty Text can collapse to no height, and a blank line is content.

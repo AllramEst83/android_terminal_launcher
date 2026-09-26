@@ -265,9 +265,7 @@ void main() {
 
     test('offers "clear" once "home " is typed', () {
       expect(rig.command.argSuggestions!('home ', const []), ['home clear']);
-      expect(rig.command.argSuggestions!('home cl', const []), [
-        'home clear',
-      ]);
+      expect(rig.command.argSuggestions!('home cl', const []), ['home clear']);
     });
 
     test('a home city name is also the user\'s to type', () {
