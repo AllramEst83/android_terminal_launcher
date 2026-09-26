@@ -105,7 +105,7 @@ void main() {
   });
 
   test('the built-in providers are distinct and register without clashes', () {
-    expect(defaultProviders.map((p) => p.name).toSet(), hasLength(3));
+    expect(defaultProviders.map((p) => p.name).toSet(), hasLength(2));
     expect(
       () => CommandRegistry.fromProviders(defaultProviders),
       returnsNormally,
@@ -120,8 +120,6 @@ void main() {
         'open',
         'refresh',
         'uninstall',
-        'calc',
-        'convert',
       ]),
     );
   });

@@ -20,8 +20,8 @@ lib/
     log_line.dart              # LogLine + LogKind (input/output/error)
     terminal_session.dart      # ChangeNotifier: log lines, submit(input)
     commands/                  # one file per command + commands.dart (built-in providers, defaultCommands)
-    providers/                 # providers that need a service built in main.dart (appearance, notes)
-    tools/                     # pure helpers behind commands: expression.dart (calc), units.dart (convert)
+    providers/                 # providers that need a service built in main.dart (appearance, notes, info)
+    tools/                     # pure helpers behind commands: expression.dart (calc), units.dart (convert), weather_text.dart
     number_format.dart         # formatNumber: whole numbers plain, float noise rounded away
   services/                    # abstractions over the platform
     app_info.dart              # AppInfo(label, packageName)
@@ -33,6 +33,8 @@ lib/
     shared_preferences_local_store.dart  # the only file that knows shared_preferences
     entry.dart, entry_store.dart # numbered notes/todos on a LocalStore (serialised calls)
     theme_choice.dart, theme_settings.dart, theme_controller.dart  # theme enum, what commands may do, ChangeNotifier the app listens to
+    http_fetcher.dart, io_http_fetcher.dart, network_exception.dart  # the only way features go online (dart:io, no package)
+    text_tv.dart, currency_rates.dart, weather.dart  # one service per online feature, all on HttpFetcher
   ui/
     terminal_screen.dart
     terminal_log.dart          # reversed ListView pinned to the newest line
@@ -89,3 +91,10 @@ Record decisions that future agents can't derive from code (append, newest last)
 - `EntryStore` serialises every call (a future queue) because the UI does not await `submit`: two quick `note add` lines would otherwise both read the list and lose one. It refuses stored data that isn't a list of entries instead of treating it as empty, so it never overwrites what it can't read. Ids never repeat, even after removal. Notes and todos are two instances with different keys, so their numbering is independent.
 - Log block separation (`ui/terminal_log.dart`): an input line after other lines gets a faint divider above it; output and errors after the first command get a thin left rule. The banner (lines before any input) stays plain. Derived from the log's line kinds, so the session model is unchanged.
 - `calc`/`convert` accept `,` as a decimal mark (Swedish keyboards), so functions take one argument only. `convert` uses US customary volumes plus Swedish `krm`/`tsk`/`msk`, decimal `kb` (1000) and binary `kib` (1024).
+- Networking: features reach the network only through `HttpFetcher` (`IoHttpFetcher` on `dart:io`: 10 s timeout that also covers stalled transfers, 2 MB cap, redirects followed, HTTPS only so no cleartext exception is needed). Every failure is a `NetworkException` whose message names the host and is printed as-is by the command. Services are concrete classes over `HttpFetcher`; tests give them a `FakeHttpFetcher` that fails on any request nothing routed, so a test must state what code is expected to ask for. The only request that carries anything about the user is a place name typed to `weather`.
+- Test fixtures under `test/fixtures/` are real API responses (reduced to the fields we read). When an API changes, re-fetch it, replace the fixture, and let the parser tests show what broke. Values in tests come from the fixture, not from memory.
+- Offline: currency rates are the one online feature with a saved copy (`LocalStore` key `currency.rates`, 6 h fresh, older copy used when the network fails and labelled so). The saved copy is disposable, so unlike notes a damaged one is replaced rather than refused. A saved rate dated in the future (bad clock) is not trusted. Text TV and weather are live data and just report the failure.
+- Text TV: 40-column pages from texttv.nu (Inrikes 101, Utrikes 104, Sport 300, Väder 400; the API asks each client to send a unique `app` value). `content_plain` is a list, one entry per sub-page; an unknown page is `[]`, a page that is not in broadcast is one line saying so, both mean "not in broadcast".
+- Fixed-width grids: `CommandOutput(columns: n)` marks lines as a grid `n` characters wide; the log shrinks the font (same scale for every line) instead of wrapping, and blank lines render as a space so they keep their height. Use it for anything column-aligned (Text TV now, calendar month view later).
+- `help` has three layers (overview by provider, group, command) because a phone shows ~36 columns. Providers double as help groups (`CommandRegistry.groups`). Commands may set `forms`, `examples`, `notes`; a test requires every help line to fit 36 columns and every description to fit the group view, so new commands must keep lines short. Overviews put the hint on the last line, since the log is pinned to the bottom.
+- `ToolsProvider` needs the currency service, so it is built in `main.dart`; `defaultProviders` is only what needs nothing but the app list (system, apps).

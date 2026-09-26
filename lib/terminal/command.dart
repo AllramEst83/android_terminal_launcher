@@ -15,12 +15,16 @@ class CommandContext {
     required this.args,
     required this.apps,
     required this.commands,
+    this.groups = const [],
     this.now = systemNow,
   });
 
   final List<String> args;
   final AppRepository apps;
   final List<Command> commands;
+
+  /// [commands] by provider, for `help`. Empty when nothing was grouped.
+  final List<CommandGroup> groups;
   final DateTime Function() now;
 }
 
@@ -40,15 +44,41 @@ class Command {
     required this.usage,
     required this.run,
     this.aliases = const [],
+    this.forms = const [],
+    this.examples = const [],
+    this.notes = const [],
     this.argSuggestions,
   });
 
   final String name;
   final List<String> aliases;
   final String description;
+
+  /// One compact line, e.g. `open <app>`. Also tells the suggester whether the
+  /// command takes arguments (a space in it), so keep the name first.
   final String usage;
   final CommandRunner run;
 
+  /// Every way to call it, one per line, for `help <command>`. Defaults to
+  /// just [usage].
+  final List<String> forms;
+
+  /// Complete example lines to try, for `help <command>`.
+  final List<String> examples;
+
+  /// Extra lines for `help <command>`, printed as written.
+  final List<String> notes;
+
+  List<String> get usageForms => forms.isEmpty ? [usage] : forms;
+
   /// Null when the command has nothing useful to suggest for its arguments.
   final ArgSuggester? argSuggestions;
+}
+
+/// Commands that belong together (one provider's), in the provider's order.
+class CommandGroup {
+  const CommandGroup(this.name, this.commands);
+
+  final String name;
+  final List<Command> commands;
 }

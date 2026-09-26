@@ -5,19 +5,21 @@ abstract final class Messages {
   static const prompt = r'$ ';
   static const welcome = "Terminal Launcher. Type 'help' for commands.";
 
-  static const helpHeader = 'commands:';
+  static const helpHeader = 'commands';
+  static const helpHint = 'try: help <name>  (e.g. help open)';
+  static const helpUsage = 'usage: help [command or group]';
+  static String helpUnknown(String name) => "no help for '$name' (try: help)";
+  static const helpUsageLabel = 'usage:';
+  static const helpExamplesLabel = 'examples:';
+  static const helpNotesLabel = 'notes:';
+  static String helpAliases(List<String> aliases) =>
+      'aliases: ${aliases.join(', ')}';
   static const noApps = 'no apps found';
   static const openUsage = 'usage: open <app>';
   static const uninstallUsage = 'usage: uninstall <app>';
   static const unterminatedQuote = 'unterminated quote';
 
-  static const calcUsage = [
-    'usage: calc <expression>',
-    '  operators: + - * / % ^ ( )   constants: pi e',
-    '  functions: sqrt abs sin cos tan asin acos atan ln log exp',
-    '             floor ceil round   (angles in radians)',
-    '  example:   calc 2*(3+4)^2',
-  ];
+  static const calcUsage = ['usage: calc <expression>', 'try: help calc'];
   static String calcError(String problem) => 'calc: $problem';
   static String exprUnexpected(String found) => "unexpected '$found'";
   static const exprUnexpectedEnd = 'expression ended unexpectedly';
@@ -53,6 +55,33 @@ abstract final class Messages {
       ? 'no finished todos to clear'
       : 'cleared $count finished ${count == 1 ? 'todo' : 'todos'}';
 
+  static const weatherUsage = ['usage: weather [city]', 'try: help weather'];
+  static const weatherNoHome = 'no home city yet (try: weather home <city>)';
+  static String weatherNoPlace(String query) =>
+      "no place found called '$query'";
+  static String weatherHome(String label) => 'home: $label';
+  static String weatherHomeSet(String label) => 'home set to $label';
+  static const weatherHomeCleared = 'home cleared';
+  static String weatherError(String reason) => 'weather: $reason';
+  static const weatherToday = 'Today';
+  static String weatherNow(String words, String temp, String feels) =>
+      '$words, $temp (feels $feels)';
+  static String weatherWind(String speed, String point, int humidity) =>
+      'wind $speed m/s $point · humidity $humidity%';
+
+  static const textTvUsage = [
+    'usage: texttv [page] [part]',
+    'try: help texttv',
+  ];
+  static String textTvBadPage(String text, int first, int last) =>
+      "'$text' is not a Text TV page ($first-$last)";
+  static String textTvBadPart(String text) => "'$text' is not a part number";
+  static String textTvNotBroadcast(int page) =>
+      'page $page is not in broadcast';
+  static String textTvNoSuchPart(int page, int part, int parts) =>
+      'page $page has ${parts == 1 ? '1 part' : '$parts parts'}, not $part';
+  static String textTvError(String reason) => 'texttv: $reason';
+
   static const themeUsage = 'usage: theme [name]';
   static const themeHeader = 'themes:';
   static String themeChanged(String name) => 'theme: $name';
@@ -63,8 +92,12 @@ abstract final class Messages {
 
   static const convertUsage = [
     'usage: convert <value> <from> <to>',
-    "  example: convert 5 km mi     (see all units: 'convert units')",
+    'try: help convert',
   ];
+  static String unknownCurrency(String code) =>
+      "unknown currency '$code' (see 'convert currencies')";
+  static String rateNote(String day, {required bool stale}) =>
+      stale ? 'saved rates from $day (offline)' : 'rates from $day (ECB)';
   static String convertError(String problem) => 'convert: $problem';
   static String unknownUnit(String name) =>
       "unknown unit '$name' (see 'convert units')";

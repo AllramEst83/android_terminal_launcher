@@ -58,4 +58,44 @@ void main() {
 
     expect(registry.commands.map((c) => c.name), ['clear', 'list', 'open']);
   });
+
+  group('groups', () {
+    test('commands registered directly land in an "other" group', () {
+      final registry = CommandRegistry([testCommand('a'), testCommand('b')]);
+
+      expect(registry.groups.map((g) => g.name), ['other']);
+      expect(registry.groups.single.commands.map((c) => c.name), ['a', 'b']);
+    });
+
+    test('a group can be named when registering', () {
+      final registry = CommandRegistry()
+        ..register(testCommand('zap'), group: 'files')
+        ..register(testCommand('cat'), group: 'files')
+        ..register(testCommand('ping'), group: 'net');
+
+      expect(registry.groups.map((g) => g.name), ['files', 'net']);
+      expect(registry.groups.first.commands.map((c) => c.name), ['zap', 'cat']);
+    });
+
+    test('a rejected command does not create or fill a group', () {
+      final registry = CommandRegistry()
+        ..register(testCommand('list'), group: 'one');
+
+      expect(
+        () => registry.register(testCommand('list'), group: 'two'),
+        throwsArgumentError,
+      );
+      expect(registry.groups.map((g) => g.name), ['one']);
+    });
+
+    test('groups cannot be changed from outside', () {
+      final registry = CommandRegistry()
+        ..register(testCommand('a'), group: 'g');
+
+      expect(
+        () => registry.groups.first.commands.add(testCommand('b')),
+        throwsUnsupportedError,
+      );
+    });
+  });
 }

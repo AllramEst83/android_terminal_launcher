@@ -23,6 +23,7 @@ Application id: `com.codedbykay.android_terminal_launcher`.
   </queries>
   ```
   Keep the existing `PROCESS_TEXT` query the template added.
+- `INTERNET` is declared for Text TV, weather and currency rates (a normal permission, granted at install). Everything uses HTTPS, so no cleartext-traffic exception is needed; keep it that way. The debug and profile manifests also declare it, which is why network code can work in `flutter run` and still fail in a release build if the main manifest lacks it.
 - `REQUEST_DELETE_PACKAGES` (normal permission, API 28+) is declared for the `uninstall` command. Android only lets an app open its own uninstall dialog via `ACTION_DELETE`; the app can never remove another app silently, and cannot tell whether the user confirmed.
 - `QUERY_ALL_PACKAGES` is only needed if you must see non-launchable packages. It is a Play-restricted permission; don't add it unless a feature requires it, and document why.
 - List **launchable** apps only (have a launch intent / `CATEGORY_LAUNCHER` activity), exclude this app itself, sort case-insensitively by label.

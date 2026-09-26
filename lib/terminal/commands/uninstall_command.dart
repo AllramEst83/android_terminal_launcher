@@ -7,8 +7,10 @@ import 'package:android_terminal_launcher/terminal/commands/resolve_app.dart';
 /// own confirmation dialog, which is the user's chance to back out.
 final uninstallCommand = Command(
   name: 'uninstall',
-  description: 'Uninstall an app (Android asks you to confirm)',
+  description: 'Uninstall an app',
   usage: 'uninstall <app>',
+  examples: ['uninstall calculator'],
+  notes: ['Android asks you to confirm;', 'run refresh afterwards'],
   run: _uninstall,
   argSuggestions: suggestAppLabels,
 );

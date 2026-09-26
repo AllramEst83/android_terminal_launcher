@@ -1,8 +1,10 @@
 # Terminal Launcher
 
 An Android home-screen launcher that *is* a terminal. Type `open firefox`,
-`list` or `help` instead of tapping icons. Built with Flutter; works fully
-offline (the monospace font is bundled).
+`list` or `help` instead of tapping icons. Built with Flutter. Everything works
+offline (the font is bundled, notes and settings are stored on the device)
+except Text TV and weather, which need a connection; currency conversion uses
+saved rates when offline.
 
 ## Commands
 
@@ -14,10 +16,12 @@ offline (the monospace font is bundled).
 | `refresh` | Re-query the installed-app list |
 | `date` / `time` | Show the current date or time |
 | `calc <expr>` | Calculate, e.g. `calc 2*(3+4)^2`, `calc sqrt(16)+pi` |
-| `convert <n> <from> <to>` | Convert units, e.g. `convert 5 km mi`; `convert units` lists them |
+| `convert <n> <from> <to>` | Convert units or money, e.g. `convert 5 km mi`, `convert 100 usd sek` |
+| `texttv [page]` | Swedish Text TV: `texttv 104`, `texttv utrikes`, `texttv 130 2` |
+| `weather [city]` | Weather and 5-day forecast; `weather home <city>` saves your city |
 | `theme [name]` | Show or change the theme: `dark`, `light`, `coffee` |
 | `note` / `todo` | Numbered lists: `add`, `list`, `show`, `edit`, `rm`, `find`; todos also `done`, `undo`, `clear` |
-| `help` | List commands (generated from the registry) |
+| `help [name]` | Commands by group; `help <group>` or `help <command>` for detail |
 | `clear` | Clear the log |
 
 Quote text with spaces: `note add "buy milk"`.

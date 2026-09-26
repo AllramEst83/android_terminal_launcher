@@ -164,6 +164,32 @@ void main() {
     expect(session.lines.last.text, Messages.refreshed(1));
   });
 
+  test('a grid output marks its lines with their column count', () async {
+    final session = _session(
+      FakeAppRepository(),
+      commands: [
+        Command(
+          name: 'grid',
+          description: 'grid',
+          usage: 'grid',
+          run: (context) async =>
+              const CommandOutput(['ab', 'cd'], columns: 40),
+        ),
+        Command(
+          name: 'plain',
+          description: 'plain',
+          usage: 'plain',
+          run: (context) async => const CommandOutput(['ef']),
+        ),
+      ],
+    );
+
+    await session.submit('grid');
+    await session.submit('plain');
+
+    expect(session.lines.map((l) => l.columns), [null, 40, 40, null, null]);
+  });
+
   test('an unterminated quote prints an error and runs nothing', () async {
     final apps = FakeAppRepository(
       apps: const [AppInfo(label: 'Firefox', packageName: 'ff')],

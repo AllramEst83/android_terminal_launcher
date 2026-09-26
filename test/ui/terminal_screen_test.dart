@@ -3,7 +3,9 @@ import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/app_info.dart';
 import 'package:android_terminal_launcher/services/theme_choice.dart';
 import 'package:android_terminal_launcher/services/theme_controller.dart';
+import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
+import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/terminal_session.dart';
 import 'package:android_terminal_launcher/ui/suggestion_bar.dart';
@@ -303,6 +305,87 @@ void main() {
 
       expect(find.byKey(blockDividerKey), findsNothing);
       expect(find.byKey(outputRuleKey), findsNothing);
+    });
+  });
+
+  group('fixed-width grids', () {
+    final gridCommand = Command(
+      name: 'grid',
+      description: 'prints a 40 column grid',
+      usage: 'grid',
+      run: (context) async =>
+          CommandOutput(['A' * 40, '', 'B' * 20], columns: 40),
+    );
+
+    Future<TerminalSession> pumpGrid(WidgetTester tester, double width) async {
+      tester.view.physicalSize = Size(width, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final session = TerminalSession(
+        registry: CommandRegistry([gridCommand]),
+        apps: FakeAppRepository(),
+      );
+      addTearDown(session.dispose);
+      await tester.pumpWidget(App(session: session, themes: _themes()));
+      await _type(tester, 'grid');
+      return session;
+    }
+
+    double fontSize(WidgetTester tester, String text) =>
+        tester.widget<Text>(find.text(text)).style!.fontSize!;
+
+    testWidgets('shrinks the font to fit a narrow screen, without wrapping', (
+      tester,
+    ) async {
+      await pumpGrid(tester, 300);
+
+      final line = find.text('A' * 40);
+      expect(tester.takeException(), isNull);
+      expect(tester.getSize(line).width, lessThanOrEqualTo(300));
+      expect(fontSize(tester, 'A' * 40), lessThan(16));
+      // One line tall, not wrapped onto a second.
+      expect(
+        tester.getSize(line).height,
+        lessThan(fontSize(tester, 'A' * 40) * 2),
+      );
+    });
+
+    testWidgets('every line of the grid gets the same font size', (
+      tester,
+    ) async {
+      await pumpGrid(tester, 300);
+
+      expect(fontSize(tester, 'B' * 20), fontSize(tester, 'A' * 40));
+    });
+
+    testWidgets('leaves the font alone when the grid already fits', (
+      tester,
+    ) async {
+      await pumpGrid(tester, 1200);
+
+      expect(fontSize(tester, 'A' * 40), 16);
+    });
+
+    testWidgets('a blank line in the grid keeps its height', (tester) async {
+      await pumpGrid(tester, 300);
+
+      final blank = find.byWidgetPredicate(
+        (w) => w is Text && w.data == ' ' && w.maxLines == 1,
+      );
+      expect(blank, findsOneWidget);
+      expect(tester.getSize(blank).height, greaterThan(0));
+    });
+
+    testWidgets('ordinary output still wraps as before', (tester) async {
+      tester.view.physicalSize = const Size(300, 900);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _pumpApp(tester);
+
+      await _type(tester, 'x' * 60);
+
+      final line = find.text('unknown command: ${'x' * 60}');
+      expect(tester.getSize(line).height, greaterThan(30));
     });
   });
 

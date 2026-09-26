@@ -1,26 +1,111 @@
-import 'dart:math' as math;
-
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
 
-/// Generated from the registry, so it can never drift from what exists.
+/// Built from the registry, so it can never drift from what exists. Three
+/// levels, each short enough for a phone screen (about 36 columns):
+///
+///  * `help` — every group with its command names packed onto a few rows;
+///  * `help <group>` — each command in the group with its description;
+///  * `help <command>` — usage, examples, notes and aliases for one command.
 final helpCommand = Command(
   name: 'help',
-  description: 'Show available commands',
-  usage: 'help',
-  run: (context) async {
-    final commands = context.commands;
-    final width = commands.map((c) => c.usage.length).fold(0, math.max);
-    return CommandOutput([
-      Messages.helpHeader,
-      for (final command in commands)
-        '  ${command.usage.padRight(width)}  ${_describe(command)}',
-    ]);
-  },
+  description: 'Show commands or help for one',
+  usage: 'help [name]',
+  forms: ['help', 'help <command>', 'help <group>'],
+  examples: ['help open', 'help tools'],
+  run: _help,
 );
 
-String _describe(Command command) {
-  if (command.aliases.isEmpty) return command.description;
-  return '${command.description} (aliases: ${command.aliases.join(', ')})';
+/// Names are packed into rows no wider than this, so a group of commands takes
+/// a line or two on a phone instead of one line per command.
+const _rowWidth = 32;
+
+Future<CommandResult> _help(CommandContext context) async {
+  final groups = _groupsOf(context);
+  if (context.args.isEmpty) return CommandOutput(_overview(groups));
+  if (context.args.length > 1) {
+    return const CommandFailure([Messages.helpUsage]);
+  }
+
+  final key = context.args.single.toLowerCase();
+  final command = _findCommand(groups, key);
+  if (command != null) return CommandOutput(_detail(command));
+  for (final group in groups) {
+    if (group.name.toLowerCase() == key) return CommandOutput(_group(group));
+  }
+  return CommandFailure.single(Messages.helpUnknown(context.args.single));
+}
+
+/// The context's groups, or everything as one group when none were given.
+List<CommandGroup> _groupsOf(CommandContext context) {
+  if (context.groups.isNotEmpty) return context.groups;
+  return [CommandGroup('commands', context.commands)];
+}
+
+Command? _findCommand(List<CommandGroup> groups, String key) {
+  for (final group in groups) {
+    for (final command in group.commands) {
+      if ([
+        command.name,
+        ...command.aliases,
+      ].any((k) => k.toLowerCase() == key)) {
+        return command;
+      }
+    }
+  }
+  return null;
+}
+
+List<String> _overview(List<CommandGroup> groups) => [
+  Messages.helpHeader,
+  for (final group in groups) ...[
+    '[${group.name}]',
+    for (final row in _pack([for (final c in group.commands) c.name])) '  $row',
+  ],
+  Messages.helpHint,
+];
+
+List<String> _group(CommandGroup group) => [
+  '[${group.name}]',
+  for (final command in group.commands) ...[
+    command.aliases.isEmpty
+        ? '  ${command.name}'
+        : '  ${command.name} (${command.aliases.join(', ')})',
+    '    ${command.description}',
+  ],
+];
+
+List<String> _detail(Command command) => [
+  command.name,
+  '  ${command.description}',
+  Messages.helpUsageLabel,
+  for (final form in command.usageForms) '  $form',
+  if (command.examples.isNotEmpty) ...[
+    Messages.helpExamplesLabel,
+    for (final example in command.examples) '  $example',
+  ],
+  if (command.notes.isNotEmpty) ...[
+    Messages.helpNotesLabel,
+    for (final note in command.notes) '  $note',
+  ],
+  if (command.aliases.isNotEmpty) Messages.helpAliases(command.aliases),
+];
+
+/// Greedy: as many words per row as fit in [_rowWidth].
+List<String> _pack(List<String> words) {
+  final rows = <String>[];
+  var row = '';
+  for (final word in words) {
+    if (row.isEmpty) {
+      row = word;
+    } else if (row.length + 1 + word.length <= _rowWidth) {
+      row = '$row $word';
+    } else {
+      rows.add(row);
+      row = word;
+    }
+  }
+  if (row.isNotEmpty) rows.add(row);
+  return rows;
 }

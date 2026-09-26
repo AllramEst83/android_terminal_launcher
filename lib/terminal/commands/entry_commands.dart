@@ -15,7 +15,7 @@ enum _Kind {
   note(
     name: 'note',
     plural: 'notes',
-    description: 'Keep notes: add, list, show, edit, rm, find',
+    description: 'Keep numbered notes',
     forms: [
       'add <text>',
       'list',
@@ -24,11 +24,12 @@ enum _Kind {
       'rm <id>',
       'find <text>',
     ],
+    examples: ['note add "buy milk"', 'note show 1', 'note rm 1'],
   ),
   todo(
     name: 'todo',
     plural: 'todos',
-    description: 'Keep a todo list: add, done, list, edit, rm, clear',
+    description: 'Keep a todo list',
     forms: [
       'add <text>',
       'list',
@@ -40,6 +41,7 @@ enum _Kind {
       'find <text>',
       'clear',
     ],
+    examples: ['todo add "call mom"', 'todo done 1', 'todo clear'],
   );
 
   const _Kind({
@@ -47,12 +49,14 @@ enum _Kind {
     required this.plural,
     required this.description,
     required this.forms,
+    required this.examples,
   });
 
   final String name;
   final String plural;
   final String description;
   final List<String> forms;
+  final List<String> examples;
 
   bool get isTodo => this == todo;
 
@@ -69,6 +73,9 @@ Command _entryCommand(_Kind kind, EntryStore store) => Command(
   description: kind.description,
   usage:
       '${kind.name} <${kind.forms.map((f) => f.split(' ').first).join('|')}>',
+  forms: [for (final form in kind.forms) '${kind.name} $form'],
+  examples: kind.examples,
+  notes: const ['quote text that has spaces'],
   run: (context) => _run(kind, store, context.args),
   argSuggestions: (partial, apps) => [
     // Only the subcommand word; ids and text are the user's to type.

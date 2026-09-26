@@ -10,6 +10,9 @@ Command themeCommand(ThemeSettings settings) => Command(
   name: 'theme',
   description: 'Show or change the colour theme',
   usage: 'theme [name]',
+  forms: ['theme', 'theme <name>'],
+  examples: ['theme coffee'],
+  notes: ['themes: ${ThemeChoice.values.map((c) => c.name).join(' ')}'],
   run: (context) => _theme(settings, context.args),
   argSuggestions: (partial, apps) => [
     for (final value in ['list', ...ThemeChoice.values.map((c) => c.name)])

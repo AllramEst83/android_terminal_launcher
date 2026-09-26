@@ -7,6 +7,8 @@ final openCommand = Command(
   name: 'open',
   description: 'Launch an app by name',
   usage: 'open <app>',
+  examples: ['open firefox', 'open "google chrome"'],
+  notes: ['matches exact, then start,', 'then any part; ties are listed'],
   run: _open,
   argSuggestions: suggestAppLabels,
 );

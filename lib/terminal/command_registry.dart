@@ -15,7 +15,7 @@ class CommandRegistry {
     for (final provider in providers) {
       for (final command in provider.commands) {
         try {
-          registry.register(command);
+          registry.register(command, group: provider.name);
         } on ArgumentError catch (error) {
           throw ArgumentError('${provider.name}: ${error.message}');
         }
@@ -26,10 +26,13 @@ class CommandRegistry {
 
   final Map<String, Command> _byKey = {};
   final List<Command> _commands = [];
+  final Map<String, List<Command>> _groups = {};
 
   /// Throws [ArgumentError] if the name or any alias is already taken; nothing
   /// is registered in that case.
-  void register(Command command) {
+  ///
+  /// [group] is what `help` files the command under.
+  void register(Command command, {String group = 'other'}) {
     final keys = [command.name, ...command.aliases].map((k) => k.toLowerCase());
     for (final key in keys) {
       if (_byKey.containsKey(key)) {
@@ -40,7 +43,14 @@ class CommandRegistry {
       _byKey[key] = command;
     }
     _commands.add(command);
+    _groups.putIfAbsent(group, () => []).add(command);
   }
+
+  /// Commands by group, in the order they were registered.
+  List<CommandGroup> get groups => [
+    for (final entry in _groups.entries)
+      CommandGroup(entry.key, List.unmodifiable(entry.value)),
+  ];
 
   Command? lookup(String name) => _byKey[name.toLowerCase()];
 

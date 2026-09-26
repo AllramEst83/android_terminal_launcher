@@ -5,9 +5,14 @@ sealed class CommandResult {
 }
 
 final class CommandOutput extends CommandResult {
-  const CommandOutput(this.lines);
+  const CommandOutput(this.lines, {this.columns});
 
   final List<String> lines;
+
+  /// Set when the lines are laid out on a fixed grid this many characters
+  /// wide (a teletext page, a calendar). The UI then shrinks the text to fit
+  /// the screen instead of wrapping lines, which would wreck the layout.
+  final int? columns;
 }
 
 final class CommandFailure extends CommandResult {

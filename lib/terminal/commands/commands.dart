@@ -1,3 +1,4 @@
+import 'package:android_terminal_launcher/services/currency_rates.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_provider.dart';
 import 'package:android_terminal_launcher/terminal/commands/calc_command.dart';
@@ -38,23 +39,25 @@ class AppsProvider implements CommandProvider {
   ];
 }
 
-/// Pure-logic helpers that need no service: calculator and unit conversion.
+/// Calculator, and unit and currency conversion. Built in `main.dart`, since
+/// currency needs the rates service.
 class ToolsProvider implements CommandProvider {
-  const ToolsProvider();
+  ToolsProvider({required this.currency});
+
+  final CurrencyRates currency;
 
   @override
   String get name => 'tools';
 
   @override
-  List<Command> get commands => [calcCommand, convertCommand];
+  List<Command> get commands => [calcCommand, convertCommand(currency)];
 }
 
-/// Registered at startup in `main.dart`. A new feature is a provider (its
-/// commands in their own files) plus a line here.
+/// The providers that need no service beyond the app list. Features with a
+/// service of their own are built in `main.dart`.
 const List<CommandProvider> defaultProviders = [
   SystemProvider(),
   AppsProvider(),
-  ToolsProvider(),
 ];
 
 /// Every command from [defaultProviders], flattened.

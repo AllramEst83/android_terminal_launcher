@@ -24,6 +24,7 @@ For UI/launcher behavior, also verify on a device or emulator with `flutter run`
 - Hand-written fakes over mocking libraries unless a mock clearly simplifies things.
 - Write the failing test first for bugs; add a regression test with every fix.
 - Tests must be deterministic: no wall-clock, network, or randomness without injection.
+- Online features are tested with `FakeHttpFetcher` and real responses saved in `test/fixtures/`; only `IoHttpFetcher`'s own test opens a socket, and only to a server on the loopback interface. Never hit a live API from a committed test.
 
 ## Review checklist
 - [ ] No logic in widgets; commands return results instead of touching UI

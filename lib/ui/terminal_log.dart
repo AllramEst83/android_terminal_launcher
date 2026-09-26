@@ -80,7 +80,12 @@ class _LogLineView extends StatelessWidget {
       LogKind.output => base,
       LogKind.error => base?.copyWith(color: colors.error),
     };
-    final text = Text(line.text, style: style);
+    // An empty Text can collapse to no height, and a blank line is content.
+    final shown = line.text.isEmpty ? ' ' : line.text;
+    final columns = line.columns;
+    final text = columns == null
+        ? Text(shown, style: style)
+        : _GridText(shown, style: style, columns: columns);
 
     if (startsBlock) {
       return Padding(
@@ -116,5 +121,45 @@ class _LogLineView extends StatelessWidget {
       );
     }
     return text;
+  }
+}
+
+/// One line of a fixed-width grid. It never wraps: when [columns] characters
+/// would not fit the available width the font is made smaller, by the same
+/// amount for every line of the grid, so the layout stays aligned.
+class _GridText extends StatelessWidget {
+  const _GridText(this.text, {required this.style, required this.columns});
+
+  final String text;
+  final TextStyle? style;
+  final int columns;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = style ?? DefaultTextStyle.of(context).style;
+    final scaler = MediaQuery.textScalerOf(context);
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final painter = TextPainter(
+          text: TextSpan(text: 'M' * columns, style: base),
+          textScaler: scaler,
+          textDirection: TextDirection.ltr,
+        )..layout();
+        final needed = painter.width;
+        painter.dispose();
+        final fits =
+            !constraints.hasBoundedWidth || needed <= constraints.maxWidth;
+        // A hair under, so rounding never pushes the last column onto a new line.
+        final scale = fits ? 1.0 : constraints.maxWidth / needed * 0.995;
+        return Text(
+          text,
+          style: base.copyWith(fontSize: (base.fontSize ?? 14) * scale),
+          textScaler: scaler,
+          softWrap: false,
+          maxLines: 1,
+          overflow: TextOverflow.clip,
+        );
+      },
+    );
   }
 }

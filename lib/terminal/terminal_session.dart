@@ -70,6 +70,7 @@ class TerminalSession extends ChangeNotifier {
           args: parsed.args,
           apps: _apps,
           commands: _registry.commands,
+          groups: _registry.groups,
           now: _clock,
         ),
       );
@@ -84,9 +85,9 @@ class TerminalSession extends ChangeNotifier {
     if (_disposed) return;
 
     switch (result) {
-      case CommandOutput(:final lines):
+      case CommandOutput(:final lines, :final columns):
         for (final line in lines) {
-          _append(LogKind.output, line);
+          _append(LogKind.output, line, columns: columns);
         }
       case CommandFailure(:final lines):
         for (final line in lines) {
@@ -132,8 +133,10 @@ class TerminalSession extends ChangeNotifier {
     }
   }
 
-  void _append(LogKind kind, String text) {
-    _lines.add(LogLine(id: _nextId++, kind: kind, text: text));
+  void _append(LogKind kind, String text, {int? columns}) {
+    _lines.add(
+      LogLine(id: _nextId++, kind: kind, text: text, columns: columns),
+    );
     if (_lines.length > _maxLines) {
       _lines.removeRange(0, _lines.length - _maxLines);
     }
