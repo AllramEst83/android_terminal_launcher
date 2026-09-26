@@ -222,6 +222,28 @@ abstract final class Messages {
 
   /// What the log shows in place of a secret typed at a hidden prompt: always
   /// the same length, so it does not give the password's away.
+  static const timerHelp = ['try: timer 10m, timer 1h30m', 'or: help timer'];
+  static String timerBad(String text) => "'$text' is not a length of time";
+  static const timerTooShort = 'a timer needs at least a second';
+  static const timerTooLong = 'a timer can be 24 hours at most';
+  static String timerSet(String length) => 'timer set: $length';
+  static String timerEnds(String when) => 'ends $when';
+  static const timersOpened = 'opened your timers in the clock app';
+  static String timerError(String reason) => 'timer: $reason';
+  static const alarmHelp = ['try: alarm 07:30, alarm 7am', 'or: help alarm'];
+  static String alarmBad(String text) => "'$text' is not a time of day";
+  static String alarmSet(String time, String when) => 'alarm set: $time, $when';
+  static const alarmsOpened = 'opened your alarms in the clock app';
+  static String alarmError(String reason) => 'alarm: $reason';
+  static String clockLabel(String label) => 'label: $label';
+
+  static const historyUsage = ['usage: history [clear]', 'try: help history'];
+  static const historyEmpty = 'no history yet';
+  static const historyCleared = 'history cleared';
+  static String historyCount(int count) =>
+      count == 1 ? 'history: 1 command' : 'history: $count commands';
+  static const historyFooter = 'tap one to fill the prompt';
+
   static const secretEcho = '••••••••';
   static const secretCancelled = 'cancelled';
 

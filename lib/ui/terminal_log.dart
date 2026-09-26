@@ -63,7 +63,8 @@ class TerminalLog extends StatelessWidget {
             return _LogLineView(
               key: ValueKey(line.id),
               line: line,
-              onRun: session.submit,
+              // A tap in a card is not a habit: it is run but never remembered.
+              onRun: (command) => session.submit(command, remember: false),
               onFill: onFill,
               startsBlock: line.kind == LogKind.input && position > 0,
               inBlock:

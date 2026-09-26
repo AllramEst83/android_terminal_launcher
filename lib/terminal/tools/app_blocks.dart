@@ -1,15 +1,8 @@
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/app_info.dart';
 import 'package:android_terminal_launcher/terminal/blocks.dart';
+import 'package:android_terminal_launcher/terminal/tools/alphabet.dart';
 import 'package:android_terminal_launcher/terminal/tools/quote.dart';
-
-/// The first letter of [label] as a heading: upper case, and `#` for a name
-/// that starts with a digit or a symbol.
-String initialOf(String label) {
-  final first = label.trim().isEmpty ? '' : label.trim().substring(0, 1);
-  final upper = first.toUpperCase();
-  return RegExp(r'\p{L}', unicode: true).hasMatch(upper) ? upper : '#';
-}
 
 /// Every app as a chip under its initial. A tap opens it (`open "<name>"`),
 /// which is harmless; the list is in the order given (alphabetical already).
@@ -18,13 +11,7 @@ ChoiceBlock appsChoices(List<AppInfo> apps) {
   for (final app in apps) {
     byInitial.putIfAbsent(initialOf(app.label), () => []).add(app);
   }
-  final initials = byInitial.keys.toList()
-    ..sort((a, b) {
-      // Symbols and digits last.
-      if (a == '#') return b == '#' ? 0 : 1;
-      if (b == '#') return -1;
-      return a.compareTo(b);
-    });
+  final initials = byInitial.keys.toList()..sort(compareInitials);
   return ChoiceBlock(
     title: apps.length == 1 ? '1 app' : '${apps.length} apps',
     groups: [

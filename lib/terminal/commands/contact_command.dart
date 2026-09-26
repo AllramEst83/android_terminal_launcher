@@ -22,8 +22,8 @@ Command contactCommand(ContactsService contacts) => Command(
   notes: [
     'matches the whole name, its start,',
     'any word in it, or a part',
-    'list shows every name; look one up',
-    'to see its numbers',
+    'list shows every name by initial;',
+    'look one up to see its numbers',
   ],
   run: (context) => _contact(contacts, context.args.join(' ').trim()),
   argSuggestions: (partial, apps) => [
@@ -62,7 +62,8 @@ Future<CommandResult> _contact(ContactsService contacts, String query) async {
   }
 }
 
-/// Every name, one per line, under a count. Names only: a phone book of a few
+/// Every name, one per line, under a count and grouped by initial (A to Z, then
+/// Å, Ä, Ö). Names only: a phone book of a few
 /// hundred would otherwise scroll for pages, and `contact <name>` gives the
 /// numbers. `list` is a keyword, so a contact whose whole name is "list" can
 /// only be found by a longer part of its name.
@@ -72,6 +73,9 @@ CommandResult _list(List<Contact> contacts) {
   }
   return CommandOutput([
     Messages.contactCount(contacts.length),
-    for (final contact in contacts) '  ${contact.name}',
+    for (final group in contactGroups(contacts)) ...[
+      group.initial,
+      for (final contact in group.contacts) '  ${contact.name}',
+    ],
   ], block: contactNames(contacts));
 }

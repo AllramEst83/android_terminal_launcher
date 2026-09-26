@@ -2,6 +2,7 @@ import 'package:android_terminal_launcher/app.dart';
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/android_app_repository.dart';
 import 'package:android_terminal_launcher/services/android_calendar_service.dart';
+import 'package:android_terminal_launcher/services/android_clock_service.dart';
 import 'package:android_terminal_launcher/services/android_contacts_service.dart';
 import 'package:android_terminal_launcher/services/android_location_service.dart';
 import 'package:android_terminal_launcher/services/android_permission_service.dart';
@@ -20,10 +21,13 @@ import 'package:android_terminal_launcher/services/text_tv.dart';
 import 'package:android_terminal_launcher/services/theme_controller.dart';
 import 'package:android_terminal_launcher/services/view_mode_controller.dart';
 import 'package:android_terminal_launcher/services/weather.dart';
+import 'package:android_terminal_launcher/terminal/command_history.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
 import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/providers/appearance_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/calendar_provider.dart';
+import 'package:android_terminal_launcher/terminal/providers/clock_provider.dart';
+import 'package:android_terminal_launcher/terminal/providers/history_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/info_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/mail_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/notes_provider.dart';
@@ -50,7 +54,14 @@ Future<void> main() async {
   final themes = ThemeController(store: store);
   final fontSize = FontSizeController(store: store);
   final view = ViewModeController(store: store);
-  await Future.wait([themes.load(), fontSize.load(), view.load()]);
+  // The first frame already shows the chips for an empty prompt.
+  final history = CommandHistory(store: store);
+  await Future.wait([
+    themes.load(),
+    fontSize.load(),
+    view.load(),
+    history.load(),
+  ]);
 
   final session = TerminalSession(
     registry: CommandRegistry.fromProviders([
@@ -76,6 +87,8 @@ Future<void> main() async {
       MailProvider(
         ImapMailService(accounts: MailAccountStore(FlutterSecretStore())),
       ),
+      ClockProvider(const AndroidClockService()),
+      HistoryProvider(history),
       AppearanceProvider(themes, fontSize, view),
       NotesProvider(
         notes: EntryStore(store: store, key: 'notes'),
@@ -85,6 +98,7 @@ Future<void> main() async {
     apps: AndroidAppRepository(ownPackage: _appId),
     banner: [Messages.welcome],
     view: view,
+    history: history,
   );
   runApp(App(session: session, themes: themes, fontSize: fontSize));
 }

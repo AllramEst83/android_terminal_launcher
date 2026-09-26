@@ -117,7 +117,9 @@ void main() {
     test('every name under a count, without numbers', () async {
       expect(_lines(await rig.run(['list'])), [
         Messages.contactCount(2),
+        'A',
         '  Anna Andersson',
+        'B',
         '  Bo Berg',
       ]);
     });
@@ -130,7 +132,8 @@ void main() {
 
       final lines = _lines(await rig.run(['list']));
 
-      expect(lines, hasLength(contactListLimit * 3 + 1));
+      // The count, one heading (they all start with P), then every name.
+      expect(lines, hasLength(contactListLimit * 3 + 2));
       expect(lines.first, Messages.contactCount(contactListLimit * 3));
     });
 

@@ -36,6 +36,21 @@ typedef ArgSuggester = List<String> Function(
   List<AppInfo> apps,
 );
 
+/// How much of a run of a command the history keeps, since the history is
+/// shown on screen as chips: a line is remembered only if showing it again is
+/// harmless.
+enum HistoryPolicy {
+  /// The whole line: `weather gothenburg`.
+  line,
+
+  /// Only the command's name, for one whose arguments are the user's own words
+  /// or an address (`note add "..."`, `mail setup ...`).
+  name,
+
+  /// Nothing (`sms`, whose text is private, and `history` itself).
+  none,
+}
+
 /// A command is data plus a function; `help` is built from these fields.
 class Command {
   const Command({
@@ -49,6 +64,7 @@ class Command {
     this.notes = const [],
     this.argSuggestions,
     this.spinner = false,
+    this.history = HistoryPolicy.line,
   });
 
   final String name;
@@ -79,6 +95,9 @@ class Command {
   /// log shows a spinner while it runs (after a short delay, so a quick answer
   /// never flashes one). Leave it off for anything that answers at once.
   final bool spinner;
+
+  /// What of a run goes in the command history.
+  final HistoryPolicy history;
 }
 
 /// Commands that belong together (one provider's), in the provider's order.

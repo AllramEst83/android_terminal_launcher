@@ -39,21 +39,6 @@ void main() {
     });
   });
 
-  group('initialOf', () {
-    test('is the upper-case first letter', () {
-      expect(initialOf('firefox'), 'F');
-      expect(initialOf('Åland'), 'Å');
-      expect(initialOf('  spaced'), 'S');
-    });
-
-    test('is # for a digit, a symbol or nothing', () {
-      expect(initialOf('1Password'), '#');
-      expect(initialOf('_x'), '#');
-      expect(initialOf(''), '#');
-      expect(initialOf('   '), '#');
-    });
-  });
-
   group('appsChoices', () {
     test('groups by initial in order, with # last', () {
       final block = appsChoices([
@@ -70,6 +55,23 @@ void main() {
         'Chrome',
       ]);
       expect(block.title, '5 apps');
+    });
+
+    test('orders Å, Ä, Ö after Z as Swedish does, and files É under E', () {
+      final block = appsChoices([
+        _app('Örebro'),
+        _app('Ärvda'),
+        _app('Zoom'),
+        _app('Åter'),
+        _app('Écran'),
+        _app('Eleven'),
+      ]);
+
+      expect(block.groups.map((g) => g.title), ['E', 'Z', 'Å', 'Ä', 'Ö']);
+      expect(block.groups.first.options.map((o) => o.label), [
+        'Écran',
+        'Eleven',
+      ]);
     });
 
     test('a tap opens the app, quoted when it has spaces, and never fills', () {
@@ -254,12 +256,75 @@ void main() {
       ]);
 
       expect(block.title, '2 contacts');
-      final options = block.groups.single.options;
+      final options = block.groups.expand((g) => g.options).toList();
       expect(options.map((o) => o.command), [
         'contact "Anna Andersson"',
         'contact "Bo Berg"',
       ]);
       expect(options.every((o) => !o.fill), isTrue);
+    });
+
+    test('the names list is grouped by initial, in phone-book order', () {
+      Contact named(String name) => Contact(name: name, numbers: const []);
+
+      final block = contactNames([
+        named('Örjan Öberg'),
+        named('Bo Berg'),
+        named('Åsa Ek'),
+        named('12 Taxi'),
+        named('anna andersson'),
+        named('Ärlig Ek'),
+        named('Zoe Zed'),
+        named('Émile Ek'),
+        named('Alice Ek'),
+      ]);
+
+      expect(block.groups.map((g) => g.title), [
+        'A',
+        'B',
+        'E',
+        'Z',
+        'Å',
+        'Ä',
+        'Ö',
+        '#',
+      ]);
+      expect(
+        block.groups
+            .map((g) => g.options.map((o) => o.label).toList())
+            .toList(),
+        [
+          ['Alice Ek', 'anna andersson'],
+          ['Bo Berg'],
+          ['Émile Ek'],
+          ['Zoe Zed'],
+          ['Åsa Ek'],
+          ['Ärlig Ek'],
+          ['Örjan Öberg'],
+          ['12 Taxi'],
+        ],
+      );
+    });
+
+    test('names in a group are in order whatever order they arrive in', () {
+      Contact named(String name) => Contact(name: name, numbers: const []);
+
+      final groups = contactGroups([
+        named('Bo Zed'),
+        named('bo alm'),
+        named('Bo Berg'),
+      ]);
+
+      expect(groups.single.initial, 'B');
+      expect(groups.single.contacts.map((c) => c.name), [
+        'bo alm',
+        'Bo Berg',
+        'Bo Zed',
+      ]);
+    });
+
+    test('no contacts is no groups', () {
+      expect(contactGroups(const []), isEmpty);
     });
   });
 }

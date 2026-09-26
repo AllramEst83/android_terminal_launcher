@@ -22,6 +22,8 @@ Command smsCommand(ContactsService contacts, SmsService sms) => Command(
   examples: ['sms anna "on my way"', 'sms "anna andersson" hi'],
   notes: ['quote a name or text of several', 'words', Messages.smsSendingNote],
   run: (context) => _sms(contacts, sms, context.args),
+  // The text is private, and history is shown on screen.
+  history: HistoryPolicy.none,
 );
 
 Future<CommandResult> _sms(

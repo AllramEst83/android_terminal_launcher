@@ -58,16 +58,18 @@ Command mailCommand(MailService mail) {
       'rm: to Trash, not deleted; the',
       '  number is from the last list',
       'needs an app password, not your',
-      '  normal one. Gmail: Google account',
-      '  > Security > App passwords',
+      '  normal one. Gmail: Security >',
+      '  App passwords in your account',
       'asked for on a hidden line, kept',
       '  encrypted on this phone',
-      'server is guessed for gmail, icloud,',
-      '  yahoo and a few more; else add it',
+      'server is guessed for gmail,',
+      '  icloud, yahoo..; else add it',
       '--plain: text only, this once',
     ],
     run: (context) => _mail(mail, last, context.args, context.now()),
     spinner: true,
+    // `mail setup` has an address in it, and `mail rm #12` means nothing later.
+    history: HistoryPolicy.name,
     argSuggestions: _suggestArgs,
   );
 }

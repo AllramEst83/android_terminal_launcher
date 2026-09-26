@@ -23,6 +23,11 @@
     <!-- `sms`: send an ordinary text message. There is no fallback for a refusal. -->
     <uses-permission android:name="android.permission.SEND_SMS" />
 
+    <!-- `timer` and `alarm`: set through the phone's clock app, which does the
+         ringing. A normal permission, granted at install; no exact-alarm access
+         is needed because nothing here schedules anything itself. -->
+    <uses-permission android:name="com.android.alarm.permission.SET_ALARM" />
+
     <application
         android:label="@string/app_name"
         android:name="${applicationName}"

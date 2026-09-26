@@ -496,7 +496,8 @@ void main() {
 
       final block = out.block as ChoiceBlock;
       expect(block.title, Messages.contactCount(2));
-      expect(block.groups.single.options.map((o) => o.command), [
+      expect(block.groups.map((g) => g.title), ['A', 'B']);
+      expect(block.groups.expand((g) => g.options).map((o) => o.command), [
         'contact "Anna Andersson"',
         'contact "Bo Berg"',
       ]);

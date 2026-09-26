@@ -41,6 +41,7 @@ class _TerminalScreenState extends State<TerminalScreen> {
                   onSuggest: widget.session.suggest,
                   filler: _filler,
                   obscure: widget.session.askingSecret,
+                  refreshOn: widget.session,
                 ),
               ),
             ],

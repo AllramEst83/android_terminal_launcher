@@ -9,6 +9,7 @@ import 'package:android_terminal_launcher/services/view_mode.dart';
 import 'package:android_terminal_launcher/services/view_mode_settings.dart';
 import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
+import 'package:android_terminal_launcher/terminal/command_history.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/log_line.dart';
@@ -34,6 +35,7 @@ class TerminalSession extends ChangeNotifier {
     this._spinnerDelay = const Duration(milliseconds: 250),
     this._banner = const [],
     this._view,
+    this._history,
   }) {
     _showBanner();
   }
@@ -57,6 +59,9 @@ class TerminalSession extends ChangeNotifier {
   /// each command finishes, so a change affects new output only.
   final ViewModeSettings? _view;
 
+  /// What has been run, for the chips above an empty prompt. Null: none kept.
+  final CommandHistory? _history;
+
   final List<LogLine> _lines = [];
   late final UnmodifiableListView<LogLine> lines = UnmodifiableListView(_lines);
   int _nextId = 0;
@@ -73,7 +78,7 @@ class TerminalSession extends ChangeNotifier {
   /// Runs [input] as a command line. Anything else that arrives while a hidden
   /// prompt is open (a tap on a card) is a command, never the secret: it
   /// abandons the question.
-  Future<void> submit(String input) async {
+  Future<void> submit(String input, {bool remember = true}) async {
     _pendingSecret = null;
     final trimmed = input.trim();
     if (trimmed.isEmpty) return;
@@ -120,8 +125,22 @@ class TerminalSession extends ChangeNotifier {
       return;
     }
     if (_disposed) return;
+    // Only what worked (a typo is not a habit), and only what the user asked
+    // for, not a tap in a card, and only as much of it as the command allows.
+    if (remember && result is! CommandFailure) _remember(command, trimmed);
     _show(result);
     notifyListeners();
+  }
+
+  void _remember(Command command, String line) {
+    final history = _history;
+    if (history == null) return;
+    final kept = switch (command.history) {
+      HistoryPolicy.line => line,
+      HistoryPolicy.name => command.name,
+      HistoryPolicy.none => null,
+    };
+    if (kept != null) unawaited(history.record(kept));
   }
 
   /// Runs [work]. With [spinner], a progress line is in the log while it runs
@@ -221,17 +240,43 @@ class TerminalSession extends ChangeNotifier {
   /// cannot be loaded, argument suggestions are simply empty.
   Future<List<Suggestion>> suggest(String input) async {
     // Nothing may look at a secret as it is typed, and it is not a command.
-    if (input.trim().isEmpty || askingSecret) return const [];
+    if (askingSecret) return const [];
+    final history = _history;
+    final most = _suggester.maxSuggestions;
+    if (input.trim().isEmpty) {
+      // An empty prompt offers what the user runs most.
+      return history == null
+          ? const []
+          : [
+              for (final entry in history.top(most))
+                Suggestion(label: entry.line, completion: entry.line),
+            ];
+    }
     final apps = await _appsForSuggestions();
+    List<Suggestion> found;
     try {
-      return _suggester.suggest(
+      found = _suggester.suggest(
         input,
         commands: _registry.commands,
         apps: apps,
       );
     } on Object {
-      return const [];
+      found = const [];
     }
+    if (history == null) return found;
+    // What the user has run that carries on from what is typed comes first.
+    final mine = [
+      for (final entry in history.matching(input, limit: 3))
+        Suggestion(label: entry.line, completion: entry.line),
+    ];
+    // A remembered line is a whole command, so it stands in for the bare
+    // command name (`cal`, `cal `) rather than sitting beside it.
+    final lines = {for (final s in mine) s.completion};
+    return [
+      ...mine,
+      for (final s in found)
+        if (!lines.contains(s.completion.trim())) s,
+    ].take(most).toList();
   }
 
   /// Suggestions run on every keystroke, so after a failed load the platform

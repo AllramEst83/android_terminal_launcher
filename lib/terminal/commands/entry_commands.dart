@@ -80,6 +80,8 @@ Command _entryCommand(_Kind kind, EntryStore store) => Command(
   examples: kind.examples,
   notes: const ['quote text that has spaces'],
   run: (context) => _run(kind, store, context.args),
+  // What is written in a note or a todo is the user's own, not for chips.
+  history: HistoryPolicy.name,
   argSuggestions: (partial, apps) => [
     // Only the subcommand word; ids and text are the user's to type.
     if (!partial.contains(' '))

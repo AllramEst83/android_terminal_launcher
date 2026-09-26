@@ -16,6 +16,7 @@ class PromptInput extends StatefulWidget {
     required this.onSuggest,
     this.filler,
     this.obscure = false,
+    this.refreshOn,
   });
 
   final Future<void> Function(String input) onSubmit;
@@ -28,6 +29,10 @@ class PromptInput extends StatefulWidget {
   /// keyboard's suggestions and learning, the double-space rule): the line is a
   /// password.
   final bool obscure;
+
+  /// When it notifies, the suggestions are asked for again for what is typed
+  /// (the history behind the chips of an empty prompt has just changed).
+  final Listenable? refreshOn;
 
   @override
   State<PromptInput> createState() => _PromptInputState();
@@ -45,11 +50,18 @@ class _PromptInputState extends State<PromptInput> with WidgetsBindingObserver {
     WidgetsBinding.instance.addObserver(this);
     _controller.addListener(_onControllerChanged);
     widget.filler?.attach(_fill);
+    widget.refreshOn?.addListener(_refresh);
+    // An empty prompt has suggestions of its own from the start.
+    unawaited(_refreshSuggestions(_controller.text));
   }
 
   @override
   void didUpdateWidget(PromptInput old) {
     super.didUpdateWidget(old);
+    if (old.refreshOn != widget.refreshOn) {
+      old.refreshOn?.removeListener(_refresh);
+      widget.refreshOn?.addListener(_refresh);
+    }
     if (old.filler != widget.filler) {
       old.filler?.detach(_fill);
       widget.filler?.attach(_fill);
@@ -58,6 +70,7 @@ class _PromptInputState extends State<PromptInput> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    widget.refreshOn?.removeListener(_refresh);
     widget.filler?.detach(_fill);
     WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_onControllerChanged);
@@ -79,6 +92,8 @@ class _PromptInputState extends State<PromptInput> with WidgetsBindingObserver {
     _lastText = text;
     unawaited(_refreshSuggestions(text));
   }
+
+  void _refresh() => unawaited(_refreshSuggestions(_controller.text));
 
   Future<void> _refreshSuggestions(String input) async {
     final found = await widget.onSuggest(input);

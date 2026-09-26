@@ -21,6 +21,8 @@ The full history of Phases 0 to 9.3 (what was tried, measured and decided, with 
 | 9.3 | **Rich views, fully migrated**: a `RichBlock` layer with `ui rich\|plain`. Cards for `cal`, `texttv` (real logos, tappable pages), `weather`, `help`, `contact`, `note`/`todo`, `list`, `calc`, `convert`, `date`, `theme`/`font`/`ui`, and a notice for every acknowledgement (`open`, `refresh`, `uninstall`, `call`, `sms`, `weather home`, ...). Pickers for "several match" (apps, people, numbers). Taps run what is harmless and **fill the prompt** for anything that acts or needs typing. |
 | 9.4 | **`mail`**: the 20 newest emails over IMAP with an app password (`mail setup <email>` asks for it on a hidden line, `mail forget`), as an inbox card with unread marks; `mail rm <n>` moves one to Trash (never deletes), by server id, with a bin on each card row that fills the prompt. New: `CommandAskSecret` (hidden prompt), `SecretStore` on the Android Keystore. Tested against a scripted local IMAP server. |
 | 9.5 | **Spinner and SMHI**: commands tagged `spinner` (weather, texttv, mail) show a turning `[|]` after 250 ms; `weather` now uses SMHI's forecast and nearest-station measurements across northern Europe, with Open-Meteo as the fallback and for the rest of the world, and credits its source. |
+| 9.6 | **History**: commands you use are remembered (ranked by use with a 14-day fade, never `sms`, name only for `note`/`todo`/`mail`, never taps in cards or failures) and shown as tap-to-fill chips above an empty prompt and as you type; `history`, `history clear`. |
+| 9.7 | **Timers and alarms**: `timer 10m`, `alarm 07:30 weekdays gym`, set in the phone's clock app (`AlarmClock` intents); no arguments opens the clock app's lists. |
 
 Also fixed along the way: the red-screen `sliver_multi_box_adaptor` crash (a slow command left the log ahead of what the list had been told).
 
@@ -29,12 +31,11 @@ Also fixed along the way: the red-screen `sliver_multi_box_adaptor` crash (a slo
 1. **Phase 9.3, the last bit**: a secondary accent plus a dim colour per theme, so cards have more than one colour to group with (every card is one colour today).
 2. **Calendar create/update/delete** (`event add`, …): `WRITE_CALENDAR`. Contained: new commands in `CalendarProvider`, methods on `CalendarService`, one row in `PermissionsChannelHandler` and the manifest. Parked until `cal` has had daily use.
 3. **WhatsApp / Messenger hand-off**: `msg <name> --wa "text"` opens the chat with the text filled in (`wa.me`, `m.me`) and the user taps Send. They have no send API, and reading or replying silently would need notification-listener access, which is fragile and invasive, so that is not planned.
-4. **Phase 10, alarms and timers**: `SCHEDULE_EXACT_ALARM`, `POST_NOTIFICATIONS` (Android 13+), a boot receiver and a persistent schedule to re-arm after reboot. Needs an on-device test; fake time cannot cover doze.
-5. **Phase 11, camera / QR**: the first feature that needs more than the log (an inline preview with a way back to the prompt). `camera`, `mobile_scanner`. Last because it forces a UI mode beyond the log.
+4. **Phase 11, camera / QR**: the first feature that needs more than the log (an inline preview with a way back to the prompt). `camera`, `mobile_scanner`. Last because it forces a UI mode beyond the log.
 
 ## Not yet checked on a device
 
-Built and tested, but not recorded as tried on the phone: `mail` and `mail rm` (the IMAP code is tested against a local fake server, not a real provider; the hidden prompt and the Keystore only on a device; try `mail rm` on a throwaway message first), the spinner's look, `weather` from SMHI (real answers are saved as test fixtures, but the app has not run against the live API), `sms` (test with your own number first), `call` and `contact`, the help cards, `ui plain`, the app icon, double-space, the flight-mode messages for `weather`/`texttv`/`convert`.
+Built and tested, but not recorded as tried on the phone: `timer` and `alarm` (the Kotlin builds and the Dart side is tested against a mocked channel, but only the phone's clock app can say it really started; try `timer 1m` and `alarm` for a minute ahead, and see whether your clock app honours `EXTRA_SKIP_UI` or opens itself), the history strip's look and feel, `mail` and `mail rm` (the IMAP code is tested against a local fake server, not a real provider; the hidden prompt and the Keystore only on a device; try `mail rm` on a throwaway message first), the spinner's look, `weather` from SMHI (real answers are saved as test fixtures, but the app has not run against the live API), `sms` (test with your own number first), `call` and `contact`, the help cards, `ui plain`, the app icon, double-space, the flight-mode messages for `weather`/`texttv`/`convert`.
 
 ## Not implemented (on purpose or not yet)
 
@@ -49,7 +50,9 @@ Built and tested, but not recorded as tried on the phone: `mail` and `mail rm` (
 - **Calendar**: read-only for now (item 2 above).
 - **Mail**: no message body (`mail show`), search, folders or more than 20 messages; no push or background sync; no undo command (it is in Trash on the server; `mail rm` takes nothing back); no Outlook.com/Hotmail (needs OAuth).
 - **Weather**: no hourly view; observed rain and present weather are not used for *now* (few stations report them), so the sky and rain now come from the forecast for the current hour; a day's low and high at the far end of the ten days rest on a few 6- or 12-hourly points; the spinner does not appear for commands that are not tagged, however long they take.
-- **Later, all cheap on the current tokenizer/registry/session**: aliases, `&&` chaining, command history, macros, config export, app-list refresh on install/uninstall.
+- **Timers and alarms**: set and opened only; the terminal cannot list or cancel them (the clock app owns them). Our own scheduler was left out on purpose: exact-alarm and notification permissions, a boot receiver and OEM battery rules for something the clock app already does reliably.
+- **History**: no editing of single entries (`history clear` forgets all), no separate history for arguments, and a `note add ...` is remembered only as `note`.
+- **Later, all cheap on the current tokenizer/registry/session**: aliases, `&&` chaining, macros (which would build on history), config export, app-list refresh on install/uninstall.
 
 ## Changelog
 
@@ -60,3 +63,5 @@ Built and tested, but not recorded as tried on the phone: `mail` and `mail rm` (
 - 2026-09-26: `mail rm` (Phase 9.4, the agreed second step): move to Trash by id, refusing without a Trash, without `MOVE` or `UIDPLUS`, when the message is gone or the inbox was renumbered. Decisions in `.agents/architecture.md` ("Mail, removing").
 - 2026-09-26: Phase 9.5: a spinner for commands tagged as slow, and SMHI instead of Open-Meteo as the preferred weather source (SMHI's old `pmp3g` API no longer exists; the new `snow1g` forecast and the `metobs` stations are used; Open-Meteo stays for places SMHI does not cover and as a fallback). Decisions in `.agents/architecture.md` ("Spinner", "Weather sources").
 - 2026-09-26: `weather` fallbacks now name the reason when SMHI broke (not for a plain out-of-area 404), and an out-of-area place no longer waits for the station lookup before falling back.
+- 2026-09-26: Phase 9.6, command history, and 9.7, timers and alarms. The alarms item of the old Phase 10 is done the other way round than planned (the phone's clock app instead of an own scheduler, see `.agents/architecture.md`, "Timers and alarms"). Adds the `SET_ALARM` permission.
+- 2026-09-26: `contact list` is grouped by initial (plain lines and card), in Swedish order (A to Z, Å, Ä, Ö, `#`); the app list uses the same order, which fixes Ä sorting before Å.

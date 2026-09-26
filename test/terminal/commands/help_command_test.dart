@@ -4,6 +4,7 @@ import 'package:android_terminal_launcher/services/entry_store.dart';
 import 'package:android_terminal_launcher/services/text_tv.dart';
 import 'package:android_terminal_launcher/services/weather.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
+import 'package:android_terminal_launcher/terminal/command_history.dart';
 import 'package:android_terminal_launcher/terminal/command_provider.dart';
 import 'package:android_terminal_launcher/terminal/command_registry.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
@@ -11,17 +12,22 @@ import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/commands/help_command.dart';
 import 'package:android_terminal_launcher/terminal/providers/appearance_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/calendar_provider.dart';
+import 'package:android_terminal_launcher/terminal/providers/clock_provider.dart';
+import 'package:android_terminal_launcher/terminal/providers/history_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/info_provider.dart';
+import 'package:android_terminal_launcher/terminal/providers/mail_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/notes_provider.dart';
 import 'package:android_terminal_launcher/terminal/providers/phone_provider.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../fakes/fake_app_repository.dart';
 import '../../fakes/fake_calendar_service.dart';
+import '../../fakes/fake_clock_service.dart';
 import '../../fakes/fake_contacts_service.dart';
 import '../../fakes/fake_font_size_settings.dart';
 import '../../fakes/fake_http_fetcher.dart';
 import '../../fakes/fake_location_service.dart';
+import '../../fakes/fake_mail_service.dart';
 import '../../fakes/fake_phone_service.dart';
 import '../../fakes/fake_sms_service.dart';
 import '../../fakes/fake_theme_settings.dart';
@@ -70,6 +76,9 @@ CommandRegistry _fullRegistry() {
       location: FakeLocationService(),
     ),
     CalendarProvider(FakeCalendarService()),
+    MailProvider(FakeMailService()),
+    ClockProvider(FakeClockService()),
+    HistoryProvider(CommandHistory(store: store)),
     PhoneProvider(
       contacts: FakeContactsService(),
       phone: FakePhoneService(),

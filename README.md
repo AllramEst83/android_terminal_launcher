@@ -51,7 +51,7 @@ palette.
 
 | Command | What it does |
 |---|---|
-| `list` | Every launchable app, grouped by initial; tap one to open it |
+| `list` | Every launchable app, grouped by initial (A to Z, then Å Ä Ö); tap one to open it |
 | `open <app>` | Launch an app (exact, then prefix, then substring match; several matches are offered to pick from) |
 | `uninstall <app>` | Open Android's uninstall confirmation for an app |
 | `refresh` | Re-query the installed-app list |
@@ -61,8 +61,11 @@ palette.
 | `texttv [page]` | Swedish Text TV in colour, with its logos and tappable page numbers: `texttv 104`, `texttv utrikes`, `texttv 130 2` |
 | `weather [city]` | Weather and a 5-day forecast, from SMHI (with the nearest station's measurements) across northern Europe and from Open-Meteo elsewhere; with no city, uses your location (or your saved home city); `weather home <city>` saves one |
 | `cal [day\|week\|month]` | Your phone's calendar (read-only): a month card, or an agenda for a day or week |
+| `timer <length> [label]` | Start a timer in your clock app: `timer 10m`, `timer 1h30m tea`, `timer 90s`; a bare number is minutes. With no length it opens your timers |
+| `alarm <time> [days] [label]` | Set an alarm in your clock app: `alarm 07:30`, `alarm 7am`, `alarm 6:45 weekdays gym`. With no time it opens your alarms |
+| `history [clear]` | The commands you use most (also shown above an empty prompt); `history clear` forgets them |
 | `mail [rm <n>\|setup <email>\|forget]` | Your 20 newest emails; `mail rm 3` moves one to Trash. `mail setup you@gmail.com` asks for an app password on a hidden line (see [Mail](#mail)); `mail forget` removes the account |
-| `contact <name>` / `contact list` | Look up a contact; each number has `call` and `sms` buttons |
+| `contact <name>` / `contact list` | Look up a contact; each number has `call` and `sms` buttons. `contact list` shows everyone grouped by initial, A to Z then Å Ä Ö |
 | `call <name or number>` | Call (or open the dialer if the permission is refused) |
 | `sms <name or number> "text"` | Send a text message |
 | `note` / `todo` | Numbered lists: `add`, `list`, `show`, `edit`, `rm`, `find`; todos also `done`, `undo`, `clear` |
@@ -79,7 +82,12 @@ in the log while it waits, if it takes more than a moment. Quick commands never
 show one.
 
 A strip above the prompt suggests command names and, after `open ` or
-`uninstall `, matching apps. Tapping a suggestion fills the input; Enter runs it.
+`uninstall `, matching apps. With an empty prompt it shows the commands you use
+most, ranked by how often and how recently (`history`), and a line you have run
+before is offered as you type its start. Tapping a suggestion fills the input;
+Enter runs it. Only commands that worked are remembered, taps inside cards are
+not, and nothing private is kept: `sms` is never recorded, and `note`, `todo` and
+`mail` keep only their name.
 Buttons in cards work the same way where a stray tap could do harm: `call`,
 `sms`, `note edit`, `note rm` and `uninstall` only put the command in the prompt
 for you to check and send.
@@ -89,7 +97,9 @@ for you to check and send.
 Asked for the first time a command needs them, and never otherwise: internet
 (Text TV, weather, rates, mail), location (`weather`), calendar (`cal`),
 contacts (`contact`, `call`, `sms`), phone (`call`) and SMS (`sms`). Refuse one
-and only that command is affected.
+and only that command is affected. `timer` and `alarm` need the ordinary
+"set alarm" permission, which Android grants at install.
+
 
 ## Mail
 
