@@ -15,6 +15,7 @@ import 'package:android_terminal_launcher/terminal/providers/notes_provider.dart
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../fakes/fake_app_repository.dart';
+import '../../fakes/fake_font_size_settings.dart';
 import '../../fakes/fake_http_fetcher.dart';
 import '../../fakes/fake_theme_settings.dart';
 import '../../fakes/in_memory_local_store.dart';
@@ -59,7 +60,7 @@ CommandRegistry _fullRegistry() {
       textTv: TextTv(fetcher: FakeHttpFetcher()),
       weather: Weather(fetcher: FakeHttpFetcher(), store: store),
     ),
-    AppearanceProvider(FakeThemeSettings()),
+    AppearanceProvider(FakeThemeSettings(), FakeFontSizeSettings()),
     NotesProvider(
       notes: EntryStore(store: store, key: 'notes'),
       todos: EntryStore(store: store, key: 'todos'),

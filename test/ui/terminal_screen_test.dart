@@ -1,6 +1,7 @@
 import 'package:android_terminal_launcher/app.dart';
 import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/app_info.dart';
+import 'package:android_terminal_launcher/services/font_size_controller.dart';
 import 'package:android_terminal_launcher/services/theme_choice.dart';
 import 'package:android_terminal_launcher/services/theme_controller.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
@@ -8,6 +9,7 @@ import 'package:android_terminal_launcher/terminal/command_registry.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/terminal_session.dart';
+import 'package:android_terminal_launcher/ui/ascii_banner.dart';
 import 'package:android_terminal_launcher/ui/suggestion_bar.dart';
 import 'package:android_terminal_launcher/ui/terminal_log.dart';
 import 'package:android_terminal_launcher/ui/theme.dart';
@@ -23,6 +25,12 @@ ThemeController _themes() {
   return themes;
 }
 
+FontSizeController _fontSize() {
+  final fontSize = FontSizeController(store: InMemoryLocalStore());
+  addTearDown(fontSize.dispose);
+  return fontSize;
+}
+
 Future<TerminalSession> _pumpApp(
   WidgetTester tester, {
   FakeAppRepository? apps,
@@ -36,7 +44,9 @@ Future<TerminalSession> _pumpApp(
     banner: banner,
   );
   addTearDown(session.dispose);
-  await tester.pumpWidget(App(session: session, themes: _themes()));
+  await tester.pumpWidget(
+    App(session: session, themes: _themes(), fontSize: _fontSize()),
+  );
   return session;
 }
 
@@ -230,10 +240,11 @@ void main() {
   });
 
   group('block separation', () {
-    testWidgets('the banner stays plain', (tester) async {
+    testWidgets('the banner has no block markers of its own', (tester) async {
       await _pumpApp(tester, banner: ['welcome']);
 
       expect(find.text('welcome'), findsOneWidget);
+      expect(find.byType(AsciiBanner), findsOneWidget);
       expect(find.byKey(blockDividerKey), findsNothing);
       expect(find.byKey(outputRuleKey), findsNothing);
     });
@@ -306,6 +317,18 @@ void main() {
       expect(find.byKey(blockDividerKey), findsNothing);
       expect(find.byKey(outputRuleKey), findsNothing);
     });
+
+    testWidgets('clear brings the banner back instead of an empty screen', (
+      tester,
+    ) async {
+      await _pumpApp(tester, banner: ['welcome']);
+      await _type(tester, 'date');
+
+      await _type(tester, 'clear');
+
+      expect(find.byType(AsciiBanner), findsOneWidget);
+      expect(find.text('welcome'), findsOneWidget);
+    });
   });
 
   group('fixed-width grids', () {
@@ -326,7 +349,9 @@ void main() {
         apps: FakeAppRepository(),
       );
       addTearDown(session.dispose);
-      await tester.pumpWidget(App(session: session, themes: _themes()));
+      await tester.pumpWidget(
+        App(session: session, themes: _themes(), fontSize: _fontSize()),
+      );
       await _type(tester, 'grid');
       return session;
     }
@@ -358,12 +383,22 @@ void main() {
       expect(fontSize(tester, 'B' * 20), fontSize(tester, 'A' * 40));
     });
 
-    testWidgets('leaves the font alone when the grid already fits', (
+    testWidgets('grows the font to fill a screen wider than the grid needs', (
       tester,
     ) async {
       await pumpGrid(tester, 1200);
 
-      expect(fontSize(tester, 'A' * 40), 16);
+      final size = fontSize(tester, 'A' * 40);
+      expect(size, greaterThan(16));
+      expect(size, lessThanOrEqualTo(16 * gridUpscaleLimit));
+    });
+
+    testWidgets('a grid is not indented with the ordinary output rule', (
+      tester,
+    ) async {
+      await pumpGrid(tester, 300);
+
+      expect(find.byKey(outputRuleKey), findsNothing);
     });
 
     testWidgets('a blank line in the grid keeps its height', (tester) async {

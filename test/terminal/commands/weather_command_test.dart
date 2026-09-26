@@ -251,10 +251,25 @@ void main() {
     });
   });
 
-  test(
-    'has no argument suggestions, since city names are the user\'s to type',
-    () {
-      expect(rig.command.argSuggestions, isNull);
-    },
-  );
+  group('argument suggestions', () {
+    // There is no list of cities to offer, so only the fixed `home`/`clear`
+    // keywords are ever suggested.
+    test('offers "home" for an empty or matching first word', () {
+      expect(rig.command.argSuggestions!('', const []), ['home']);
+      expect(rig.command.argSuggestions!('ho', const []), ['home']);
+    });
+
+    test('a city name is the user\'s to type: nothing is suggested', () {
+      expect(rig.command.argSuggestions!('goth', const []), isEmpty);
+    });
+
+    test('offers "clear" once "home " is typed', () {
+      expect(rig.command.argSuggestions!('home ', const []), ['home clear']);
+      expect(rig.command.argSuggestions!('home cl', const []), ['home clear']);
+    });
+
+    test('a home city name is also the user\'s to type', () {
+      expect(rig.command.argSuggestions!('home malm', const []), isEmpty);
+    });
+  });
 }

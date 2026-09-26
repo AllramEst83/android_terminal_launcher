@@ -24,11 +24,9 @@ class TerminalSession extends ChangeNotifier {
     this._clock = systemNow,
     this._suggester = const Suggester(),
     this._suggestRetryDelay = const Duration(seconds: 5),
-    List<String> banner = const [],
+    this._banner = const [],
   }) {
-    for (final line in banner) {
-      _append(LogKind.output, line);
-    }
+    _showBanner();
   }
 
   final CommandRegistry _registry;
@@ -38,6 +36,10 @@ class TerminalSession extends ChangeNotifier {
   final DateTime Function() _clock;
   final Suggester _suggester;
   final Duration _suggestRetryDelay;
+
+  /// Shown again after `clear`, not just at startup, so the screen never
+  /// stays truly blank.
+  final List<String> _banner;
 
   final List<LogLine> _lines = [];
   late final UnmodifiableListView<LogLine> lines = UnmodifiableListView(_lines);
@@ -95,8 +97,15 @@ class TerminalSession extends ChangeNotifier {
         }
       case CommandClear():
         _lines.clear();
+        _showBanner();
     }
     notifyListeners();
+  }
+
+  void _showBanner() {
+    for (final line in _banner) {
+      _append(LogKind.banner, line);
+    }
   }
 
   /// Completions for [input] as typed so far. Never throws: if the app list

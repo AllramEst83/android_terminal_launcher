@@ -90,6 +90,14 @@ abstract final class Messages {
   static String unknownTheme(String name, List<String> available) =>
       "no theme called '$name' (available: ${available.join(', ')})";
 
+  static const fontUsage = 'usage: font [size]';
+  static const fontHeader = 'sizes:';
+  static String fontChanged(String name) => 'font: $name';
+  static String fontNotSaved(String reason) =>
+      "could not save the size, so it won't survive a restart: $reason";
+  static String unknownFontSize(String name, List<String> available) =>
+      "no size called '$name' (available: ${available.join(', ')})";
+
   static const convertUsage = [
     'usage: convert <value> <from> <to>',
     'try: help convert',

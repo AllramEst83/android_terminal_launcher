@@ -1,10 +1,15 @@
 import 'package:android_terminal_launcher/terminal/log_line.dart';
 import 'package:android_terminal_launcher/terminal/terminal_session.dart';
+import 'package:android_terminal_launcher/ui/ascii_banner.dart';
 import 'package:flutter/material.dart';
 
 /// Keys on the block markers, so tests can find them.
 const blockDividerKey = ValueKey('block-divider');
 const outputRuleKey = ValueKey('output-rule');
+
+/// How far `_GridText` may enlarge a grid to fill a screen wider than it
+/// needs. Exported so tests can check against it instead of a magic number.
+const gridUpscaleLimit = 1.75;
 
 /// Renders the session's log, newest line at the bottom. The list is
 /// `reverse`d so it stays pinned to the newest line without a scroll
@@ -12,7 +17,10 @@ const outputRuleKey = ValueKey('output-rule');
 ///
 /// A command and what it printed read as one block: a faint divider sits above
 /// each echoed input line, and the output under it carries a thin rule down its
-/// left edge. Text before the first command (the banner) stays plain.
+/// left edge. A [LogKind.banner] line (shown at startup and again after
+/// `clear`) renders as [AsciiBanner] instead, with none of that decoration. A
+/// fixed-width grid (Text TV, later a calendar) skips the rule too and runs
+/// edge to edge instead, like its own screen rather than indented app output.
 class TerminalLog extends StatelessWidget {
   const TerminalLog({super.key, required this.session});
 
@@ -38,6 +46,9 @@ class TerminalLog extends StatelessWidget {
           itemBuilder: (context, index) {
             final position = lines.length - 1 - index;
             final line = lines[position];
+            if (line.kind == LogKind.banner) {
+              return AsciiBanner(key: ValueKey(line.id), caption: line.text);
+            }
             return _LogLineView(
               key: ValueKey(line.id),
               line: line,
@@ -77,12 +88,15 @@ class _LogLineView extends StatelessWidget {
     final base = theme.textTheme.bodyLarge;
     final style = switch (line.kind) {
       LogKind.input => base?.copyWith(fontWeight: FontWeight.bold),
-      LogKind.output => base,
+      // Banners are rendered by `AsciiBanner` before reaching here; the case
+      // only keeps the switch exhaustive.
+      LogKind.output || LogKind.banner => base,
       LogKind.error => base?.copyWith(color: colors.error),
     };
     // An empty Text can collapse to no height, and a blank line is content.
     final shown = line.text.isEmpty ? ' ' : line.text;
     final columns = line.columns;
+    final isGrid = columns != null;
     final text = columns == null
         ? Text(shown, style: style)
         : _GridText(shown, style: style, columns: columns);
@@ -106,7 +120,7 @@ class _LogLineView extends StatelessWidget {
         ),
       );
     }
-    if (inBlock) {
+    if (inBlock && !isGrid) {
       final rule = line.kind == LogKind.error ? colors.error : colors.onSurface;
       return Container(
         key: outputRuleKey,
@@ -124,9 +138,12 @@ class _LogLineView extends StatelessWidget {
   }
 }
 
-/// One line of a fixed-width grid. It never wraps: when [columns] characters
-/// would not fit the available width the font is made smaller, by the same
-/// amount for every line of the grid, so the layout stays aligned.
+/// One line of a fixed-width grid. It never wraps: the font is scaled so
+/// [columns] characters exactly fill the available width — smaller on a
+/// narrow screen, larger (up to [gridUpscaleLimit]) on a wide one — by the
+/// same amount for every line of the grid, so the layout stays aligned and
+/// the page fills the screen the way it would on a TV, instead of sitting at
+/// native size with the rest of the screen left blank.
 class _GridText extends StatelessWidget {
   const _GridText(this.text, {required this.style, required this.columns});
 
@@ -140,17 +157,26 @@ class _GridText extends StatelessWidget {
     final scaler = MediaQuery.textScalerOf(context);
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Measured against the grid width, not this line's own text, so every
+        // ordinary line in the grid lands on the same scale. A line that
+        // somehow runs longer than the grid measures itself instead, so it
+        // shrinks rather than getting clipped.
+        final reference = columns > text.length ? columns : text.length;
         final painter = TextPainter(
-          text: TextSpan(text: 'M' * columns, style: base),
+          text: TextSpan(text: 'M' * reference, style: base),
           textScaler: scaler,
           textDirection: TextDirection.ltr,
         )..layout();
         final needed = painter.width;
         painter.dispose();
-        final fits =
-            !constraints.hasBoundedWidth || needed <= constraints.maxWidth;
-        // A hair under, so rounding never pushes the last column onto a new line.
-        final scale = fits ? 1.0 : constraints.maxWidth / needed * 0.995;
+        // A hair under, so rounding never pushes the last column onto a new
+        // line. Unbounded width (nothing to fill) leaves the font alone.
+        final scale = constraints.hasBoundedWidth && needed > 0
+            ? (constraints.maxWidth / needed * 0.995).clamp(
+                0.0,
+                gridUpscaleLimit,
+              )
+            : 1.0;
         return Text(
           text,
           style: base.copyWith(fontSize: (base.fontSize ?? 14) * scale),

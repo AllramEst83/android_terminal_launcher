@@ -1,3 +1,4 @@
+import 'package:android_terminal_launcher/services/font_size_choice.dart';
 import 'package:android_terminal_launcher/services/theme_choice.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -44,10 +45,25 @@ _Palette _paletteFor(ThemeChoice choice) => switch (choice) {
   ),
 };
 
-/// The theme for [choice]. The launch screen stays black in every theme (see
-/// the architecture decisions), so a light theme only appears once Flutter has
-/// drawn its first frame.
-ThemeData themeFor(ThemeChoice choice) {
+/// The scale every text style in the theme is multiplied by. Exhaustive on
+/// purpose, like [_paletteFor]: adding a [FontSizeChoice] fails to compile
+/// until it has a scale. Steps mirror Android's own font-scale options
+/// (Settings > Display > Font size), so they land where a user already
+/// expects them to.
+double _scaleFor(FontSizeChoice choice) => switch (choice) {
+  FontSizeChoice.small => 0.85,
+  FontSizeChoice.normal => 1.0,
+  FontSizeChoice.large => 1.15,
+  FontSizeChoice.huge => 1.3,
+};
+
+/// The theme for [choice] at [fontSize]. The launch screen stays black in
+/// every theme (see the architecture decisions), so a light theme only
+/// appears once Flutter has drawn its first frame.
+ThemeData themeFor(
+  ThemeChoice choice, [
+  FontSizeChoice fontSize = FontSizeChoice.normal,
+]) {
   final palette = _paletteFor(choice);
   return ThemeData(
     useMaterial3: true,
@@ -65,12 +81,24 @@ ThemeData themeFor(ThemeChoice choice) {
       surface: palette.background,
       onSurface: palette.foreground,
     ),
-    textTheme: ThemeData(brightness: palette.brightness).textTheme.apply(
+    // `ThemeData.textTheme` carries no font sizes on recent Flutter (they are
+    // filled in later, per locale), and `apply(fontSizeFactor:)` needs them,
+    // so start from the English-like geometry, which has sizes.
+    textTheme: _baseTextTheme(palette.brightness).apply(
       fontFamily: 'JetBrainsMono',
       bodyColor: palette.foreground,
       displayColor: palette.foreground,
+      fontSizeFactor: _scaleFor(fontSize),
     ),
   );
+}
+
+TextTheme _baseTextTheme(Brightness brightness) {
+  final typography = Typography.material2021(platform: TargetPlatform.android);
+  final colors = brightness == Brightness.dark
+      ? typography.white
+      : typography.black;
+  return colors.merge(typography.englishLike);
 }
 
 /// Status and navigation bars that blend into [theme]: transparent status bar,

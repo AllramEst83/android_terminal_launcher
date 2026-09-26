@@ -3,6 +3,7 @@ import 'package:android_terminal_launcher/messages.dart';
 import 'package:android_terminal_launcher/services/android_app_repository.dart';
 import 'package:android_terminal_launcher/services/currency_rates.dart';
 import 'package:android_terminal_launcher/services/entry_store.dart';
+import 'package:android_terminal_launcher/services/font_size_controller.dart';
 import 'package:android_terminal_launcher/services/io_http_fetcher.dart';
 import 'package:android_terminal_launcher/services/shared_preferences_local_store.dart';
 import 'package:android_terminal_launcher/services/text_tv.dart';
@@ -28,9 +29,11 @@ Future<void> main() async {
   final store = SharedPreferencesLocalStore();
   // One fetcher for everything that goes online (Text TV, weather, rates).
   final fetcher = IoHttpFetcher();
-  // Loaded before the first frame so the saved theme never flashes the default.
+  // Loaded before the first frame so the saved theme/size never flash the
+  // default.
   final themes = ThemeController(store: store);
-  await themes.load();
+  final fontSize = FontSizeController(store: store);
+  await Future.wait([themes.load(), fontSize.load()]);
 
   final session = TerminalSession(
     registry: CommandRegistry.fromProviders([
@@ -42,7 +45,7 @@ Future<void> main() async {
         textTv: TextTv(fetcher: fetcher),
         weather: Weather(fetcher: fetcher, store: store),
       ),
-      AppearanceProvider(themes),
+      AppearanceProvider(themes, fontSize),
       NotesProvider(
         notes: EntryStore(store: store, key: 'notes'),
         todos: EntryStore(store: store, key: 'todos'),
@@ -51,5 +54,5 @@ Future<void> main() async {
     apps: AndroidAppRepository(ownPackage: _appId),
     banner: [Messages.welcome],
   );
-  runApp(App(session: session, themes: themes));
+  runApp(App(session: session, themes: themes, fontSize: fontSize));
 }
