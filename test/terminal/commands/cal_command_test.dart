@@ -4,6 +4,7 @@ import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/commands/cal_command.dart';
 import 'package:android_terminal_launcher/terminal/tools/calendar_text.dart';
+import 'package:android_terminal_launcher/terminal/tools/last_calendar_events.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../fakes/fake_app_repository.dart';
@@ -21,7 +22,8 @@ final _lunch = CalendarEvent(
 
 class _Rig {
   final calendar = FakeCalendarService();
-  late final Command command = calCommand(calendar);
+  final lastEvents = LastCalendarEvents();
+  late final Command command = calCommand(calendar, lastEvents);
 
   Future<CommandResult> run(List<String> args) => command.run(
     CommandContext(
@@ -38,7 +40,9 @@ class _Rig {
 List<String> _lines(CommandResult result) => switch (result) {
   CommandOutput(:final lines) => lines,
   CommandFailure(:final lines) => lines,
-  CommandClear() || CommandAskSecret() => fail('unexpected clear'),
+  CommandClear() ||
+  CommandAskSecret() ||
+  CommandAsk() => fail('unexpected clear'),
 };
 
 void main() {
@@ -106,7 +110,7 @@ void main() {
         final result = await rig.run(['today']) as CommandOutput;
 
         expect(result.columns, isNull);
-        expect(result.lines, ['Sat 26 Sep 2026', '12:00-13:00 Lunch']);
+        expect(result.lines, ['Sat 26 Sep 2026', ' 1 12:00-13:00 Lunch']);
       },
     );
 
@@ -157,7 +161,7 @@ void main() {
 
       expect(lines.where((line) => line.contains(' 2026')), hasLength(7));
       expect(lines, contains('Sat 26 Sep 2026 (today)'));
-      expect(lines, contains('  12:00-13:00 Lunch'));
+      expect(lines, contains('   1 12:00-13:00 Lunch'));
     });
   });
 
@@ -276,5 +280,33 @@ void main() {
 
   test('is also reachable as calendar', () {
     expect(rig.command.aliases, contains('calendar'));
+  });
+
+  group('last shown events', () {
+    test('day and week fill it, in the order they are shown', () async {
+      rig.calendar.result = CalendarEvents([_lunch]);
+
+      await rig.run(['day']);
+      expect(rig.lastEvents.find('1')?.id, _lunch.id);
+
+      await rig.run(['week']);
+      expect(rig.lastEvents.find('1')?.id, _lunch.id);
+    });
+
+    test('#id reaches an event whatever its position', () async {
+      rig.calendar.result = CalendarEvents([_lunch]);
+      await rig.run(['day']);
+
+      expect(rig.lastEvents.find('#${_lunch.id}')?.id, _lunch.id);
+    });
+
+    test('month never fills it', () async {
+      rig.calendar.result = CalendarEvents([_lunch]);
+      await rig.run(['day']);
+
+      await rig.run([]);
+
+      expect(rig.lastEvents.find('1')?.id, _lunch.id);
+    });
   });
 }

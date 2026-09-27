@@ -9,18 +9,28 @@ const agendaEntryKey = ValueKey('agenda-entry');
 const agendaLegendKey = ValueKey('agenda-legend');
 const agendaPreviousKey = ValueKey('agenda-previous');
 const agendaNextKey = ValueKey('agenda-next');
+ValueKey<String> agendaEditKey(int id) => ValueKey('agenda-edit-$id');
+ValueKey<String> agendaRemoveKey(int id) => ValueKey('agenda-remove-$id');
 
 /// Days as an agenda card: when it can be stepped through time (a week), a
 /// heading with arrows either side, then a heading per day (tap it to open
 /// that day) and each event as a row with a bar in its calendar's colour, its
 /// times stacked in a column, and its title and place wrapping under
 /// themselves rather than back to the left edge. Events that are over are
-/// dimmed and the one under way is lit.
+/// dimmed and the one under way is lit. A pencil and a bin at the end of a row
+/// put `event edit`/`event rm` for it in the prompt: neither acts until the
+/// user presses Enter.
 class AgendaView extends StatelessWidget {
-  const AgendaView({super.key, required this.block, required this.onRun});
+  const AgendaView({
+    super.key,
+    required this.block,
+    required this.onRun,
+    required this.onFill,
+  });
 
   final AgendaBlock block;
   final RunCommand onRun;
+  final FillPrompt onFill;
 
   @override
   Widget build(BuildContext context) {
@@ -49,6 +59,7 @@ class AgendaView extends StatelessWidget {
             _DaySection(
               day: block.days[i],
               onTap: tappable ? () => onRun(block.days[i].command) : null,
+              onFill: onFill,
             ),
           ],
           if (block.legend.isNotEmpty) _Legend(block.legend),
@@ -59,10 +70,15 @@ class AgendaView extends StatelessWidget {
 }
 
 class _DaySection extends StatelessWidget {
-  const _DaySection({required this.day, required this.onTap});
+  const _DaySection({
+    required this.day,
+    required this.onTap,
+    required this.onFill,
+  });
 
   final AgendaDay day;
   final VoidCallback? onTap;
+  final FillPrompt onFill;
 
   @override
   Widget build(BuildContext context) {
@@ -136,16 +152,18 @@ class _DaySection extends StatelessWidget {
           ),
           child: const SizedBox(height: 4),
         ),
-        for (final entry in day.entries) _EntryRow(entry: entry),
+        for (final entry in day.entries)
+          _EntryRow(entry: entry, onFill: onFill),
       ],
     );
   }
 }
 
 class _EntryRow extends StatelessWidget {
-  const _EntryRow({required this.entry});
+  const _EntryRow({required this.entry, required this.onFill});
 
   final AgendaEntry entry;
+  final FillPrompt onFill;
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +229,22 @@ class _EntryRow extends StatelessWidget {
                 ),
               ),
             ),
+            _EntryButton(
+              key: agendaEditKey(entry.id),
+              icon: Icons.edit_outlined,
+              label: 'Edit: ${entry.title}',
+              fg: fg,
+              size: fontSize,
+              onTap: () => onFill('event edit #${entry.id}'),
+            ),
+            _EntryButton(
+              key: agendaRemoveKey(entry.id),
+              icon: Icons.delete_outline,
+              label: 'Delete: ${entry.title}',
+              fg: fg,
+              size: fontSize,
+              onTap: () => onFill('event rm #${entry.id}'),
+            ),
           ],
         ),
       ),
@@ -219,6 +253,38 @@ class _EntryRow extends StatelessWidget {
         ? Opacity(opacity: blockPastOpacity, child: row)
         : row;
   }
+}
+
+class _EntryButton extends StatelessWidget {
+  const _EntryButton({
+    super.key,
+    required this.icon,
+    required this.label,
+    required this.fg,
+    required this.size,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final Color fg;
+  final double size;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => Semantics(
+    button: true,
+    label: label,
+    excludeSemantics: true,
+    child: InkWell(
+      borderRadius: BorderRadius.circular(8),
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.all(4),
+        child: Icon(icon, size: size * 1.1, color: fg.withValues(alpha: 0.5)),
+      ),
+    ),
+  );
 }
 
 class _Legend extends StatelessWidget {

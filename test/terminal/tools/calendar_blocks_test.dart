@@ -183,6 +183,22 @@ void main() {
       expect(agenda(const []).days.single.entries, isEmpty);
     });
 
+    test('entries are numbered across every day, and carry the event id', () {
+      final standup = _at('Standup', 9, 10, day: 25);
+      final lunch = _at('Lunch', 12, 13, day: 26);
+      final dinner = _at('Dinner', 19, 20, day: 26);
+
+      final block = agenda(
+        [standup, lunch, dinner],
+        [DateTime(2026, 9, 25), _today],
+      );
+
+      expect(block.days[0].entries.single.number, 1);
+      expect(block.days[0].entries.single.id, standup.id);
+      expect(block.days[1].entries.map((e) => e.number), [2, 3]);
+      expect(block.days[1].entries.map((e) => e.id), [lunch.id, dinner.id]);
+    });
+
     test('a title and arrows are passed through, and null without them', () {
       expect(agenda(const []).title, isNull);
       expect(agenda(const []).previousCommand, isNull);

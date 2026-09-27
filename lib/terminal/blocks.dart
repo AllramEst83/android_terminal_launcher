@@ -101,6 +101,8 @@ enum EntryPhase { past, now, later }
 
 class AgendaEntry {
   const AgendaEntry({
+    required this.number,
+    required this.id,
     required this.start,
     required this.title,
     this.end,
@@ -109,6 +111,14 @@ class AgendaEntry {
     this.allDay = false,
     this.phase = EntryPhase.later,
   });
+
+  /// Its position in the shown list (`event edit <number>`), counted across
+  /// every day shown, not reset per day.
+  final int number;
+
+  /// The event's id in Android's calendar provider (`event edit #<id>`), so a
+  /// card still means the same event however the list has changed since.
+  final int id;
 
   /// `10:00`, `all day`, or `→` for an event that began on an earlier day.
   final String start;

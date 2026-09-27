@@ -68,18 +68,21 @@ class TerminalSession extends ChangeNotifier {
   bool _disposed = false;
   DateTime? _appListFailedAt;
 
-  /// What the prompt sends when Enter is pressed: the answer to a hidden
-  /// prompt if one is open, else a command line.
+  /// What the prompt sends when Enter is pressed: the answer to a hidden or
+  /// visible prompt if one is open, else a command line.
   Future<void> submitFromPrompt(String input) {
-    final asked = _pendingSecret;
-    return asked == null ? submit(input) : _answerSecret(input, asked);
+    final secret = _pendingSecret;
+    if (secret != null) return _answerSecret(input, secret);
+    final asked = _pendingAsk;
+    return asked == null ? submit(input) : _answerAsk(input, asked);
   }
 
-  /// Runs [input] as a command line. Anything else that arrives while a hidden
-  /// prompt is open (a tap on a card) is a command, never the secret: it
-  /// abandons the question.
+  /// Runs [input] as a command line. Anything else that arrives while a
+  /// hidden or visible prompt is open (a tap on a card) is a command, never
+  /// the answer: it abandons the question.
   Future<void> submit(String input, {bool remember = true}) async {
     _pendingSecret = null;
+    _pendingAsk = null;
     final trimmed = input.trim();
     if (trimmed.isEmpty) return;
 
@@ -195,6 +198,38 @@ class TerminalSession extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Whether the next line typed is a visible step of a guided form: shown as
+  /// typed, with its own suggestions, unlike a secret.
+  bool get askingInput => _pendingAsk != null;
+  CommandAsk? _pendingAsk;
+
+  /// Takes the line typed at a visible prompt. `cancel` abandons the whole
+  /// form; anything else, even empty, goes to [asked.then] to decide.
+  Future<void> _answerAsk(String input, CommandAsk asked) async {
+    _pendingAsk = null;
+    final trimmed = input.trim();
+    if (trimmed.toLowerCase() == 'cancel') {
+      _append(LogKind.input, '${Messages.prompt}$trimmed');
+      _append(LogKind.error, Messages.askCancelled);
+      notifyListeners();
+      return;
+    }
+    _append(LogKind.input, '${Messages.prompt}$trimmed');
+    notifyListeners();
+    final CommandResult result;
+    try {
+      result = await _withSpinner(asked.busy, () => asked.then(trimmed));
+    } on Object catch (error) {
+      if (_disposed) return;
+      _append(LogKind.error, Messages.commandFailed(error));
+      notifyListeners();
+      return;
+    }
+    if (_disposed) return;
+    _show(result);
+    notifyListeners();
+  }
+
   /// Adds what a command returned to the log. The caller notifies.
   void _show(CommandResult result) {
     final rich = (_view?.current ?? ViewMode.rich) == ViewMode.rich;
@@ -227,6 +262,9 @@ class TerminalSession extends ChangeNotifier {
       case CommandAskSecret():
         _append(LogKind.output, result.prompt);
         _pendingSecret = result;
+      case CommandAsk():
+        _append(LogKind.output, result.prompt);
+        _pendingAsk = result;
     }
   }
 
@@ -241,6 +279,14 @@ class TerminalSession extends ChangeNotifier {
   Future<List<Suggestion>> suggest(String input) async {
     // Nothing may look at a secret as it is typed, and it is not a command.
     if (askingSecret) return const [];
+    final asked = _pendingAsk;
+    if (asked != null) {
+      final completions = asked.suggestions?.call(input) ?? const [];
+      return [
+        for (final completion in completions)
+          Suggestion(label: completion, completion: completion),
+      ];
+    }
     final history = _history;
     final most = _suggester.maxSuggestions;
     if (input.trim().isEmpty) {

@@ -56,6 +56,30 @@ final class CommandAskSecret extends CommandResult {
   final bool busy;
 }
 
+/// Asks an ordinary question as the next line the user types: a step of a
+/// guided form (a title, a time, which calendar). The session shows [prompt]
+/// and, unlike [CommandAskSecret], shows what is typed and offers
+/// [suggestions] for it; an empty line is not special and goes to [then] like
+/// anything else, so what it means (invalid, or "keep the current value") is
+/// up to [then]. Typing `cancel` always abandons the whole form. [then] gives
+/// the result to show, and may ask again, chaining further steps. [busy]
+/// shows the spinner while [then] runs, for a step that goes online.
+final class CommandAsk extends CommandResult {
+  const CommandAsk(
+    this.prompt,
+    this.then, {
+    this.suggestions,
+    this.busy = false,
+  });
+
+  final String prompt;
+  final Future<CommandResult> Function(String answer) then;
+
+  /// Completions for this step only, or null for nothing to suggest.
+  final List<String> Function(String partial)? suggestions;
+  final bool busy;
+}
+
 final class CommandClear extends CommandResult {
   const CommandClear();
 }

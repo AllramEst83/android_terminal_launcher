@@ -5,9 +5,11 @@ import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/commands/cal_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/commands.dart';
 import 'package:android_terminal_launcher/terminal/commands/convert_command.dart';
+import 'package:android_terminal_launcher/terminal/commands/event_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/mail_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/texttv_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/weather_command.dart';
+import 'package:android_terminal_launcher/terminal/tools/last_calendar_events.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../fakes/fake_calendar_service.dart';
@@ -38,7 +40,8 @@ void main() {
   test('the ones that answer at once do not', () {
     final quick = <Command>[
       ...defaultCommands,
-      calCommand(FakeCalendarService()),
+      calCommand(FakeCalendarService(), LastCalendarEvents()),
+      eventCommand(FakeCalendarService(), LastCalendarEvents(), store),
       convertCommand(CurrencyRates(fetcher: fetcher, store: store)),
     ];
 

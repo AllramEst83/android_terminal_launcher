@@ -58,7 +58,9 @@ Future<List<String>> _help(
   return switch (result) {
     CommandOutput(:final lines) => lines,
     CommandFailure(:final lines) => lines,
-    CommandClear() || CommandAskSecret() => fail('unexpected clear'),
+    CommandClear() ||
+    CommandAskSecret() ||
+    CommandAsk() => fail('unexpected clear'),
   };
 }
 
@@ -75,7 +77,7 @@ CommandRegistry _fullRegistry() {
       weather: Weather(fetcher: FakeHttpFetcher(), store: store),
       location: FakeLocationService(),
     ),
-    CalendarProvider(FakeCalendarService()),
+    CalendarProvider(FakeCalendarService(), store: store),
     MailProvider(FakeMailService()),
     ClockProvider(FakeClockService()),
     HistoryProvider(CommandHistory(store: store)),

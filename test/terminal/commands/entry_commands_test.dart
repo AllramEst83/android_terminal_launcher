@@ -41,7 +41,9 @@ class _Rig {
 List<String> _lines(CommandResult result) => switch (result) {
   CommandOutput(:final lines) => lines,
   CommandFailure(:final lines) => lines,
-  CommandClear() || CommandAskSecret() => fail('unexpected clear'),
+  CommandClear() ||
+  CommandAskSecret() ||
+  CommandAsk() => fail('unexpected clear'),
 };
 
 /// What the command prints for a local time, computed the way a phone would.

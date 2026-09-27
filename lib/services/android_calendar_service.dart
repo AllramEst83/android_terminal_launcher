@@ -63,6 +63,122 @@ class AndroidCalendarService implements CalendarService {
     }
   }
 
+  @override
+  Future<CalendarListResult> writableCalendars() async {
+    final status = await _permissions.request(AppPermission.calendar);
+    if (status != PermissionStatus.granted) {
+      return CalendarListDenied(
+        permanent: status == PermissionStatus.permanentlyDenied,
+      );
+    }
+    try {
+      final raw = await _channel
+          .invokeListMethod<Map<Object?, Object?>>('calendars')
+          .timeout(timeout);
+      final calendars = <CalendarInfo>[
+        for (final entry in raw ?? const <Map<Object?, Object?>>[])
+          ?_parseCalendar(entry),
+      ];
+      return CalendarList(List.unmodifiable(calendars));
+    } on PlatformException catch (error) {
+      return switch (error.code) {
+        'NO_PERMISSION' => const CalendarListDenied(permanent: false),
+        _ => const CalendarListUnavailable('could not read the calendars'),
+      };
+    } on MissingPluginException {
+      return const CalendarListUnavailable('calendar is not supported here');
+    } on TimeoutException {
+      return const CalendarListUnavailable('the calendar did not answer');
+    }
+  }
+
+  @override
+  Future<CalendarWriteResult> createEvent(NewCalendarEvent event) =>
+      _write('insertEvent', event);
+
+  @override
+  Future<CalendarWriteResult> updateEvent(int id, NewCalendarEvent event) =>
+      _write('updateEvent', event, id: id);
+
+  Future<CalendarWriteResult> _write(
+    String method,
+    NewCalendarEvent event, {
+    int? id,
+  }) async {
+    final status = await _permissions.request(AppPermission.calendarWrite);
+    if (status != PermissionStatus.granted) {
+      return CalendarWriteDenied(
+        permanent: status == PermissionStatus.permanentlyDenied,
+      );
+    }
+    try {
+      final result = await _channel
+          .invokeMethod<int>(method, {
+            'id': ?id,
+            'calendarId': event.calendarId,
+            'title': event.title,
+            'description': event.description,
+            'begin': event.start.millisecondsSinceEpoch,
+            'end': event.end.millisecondsSinceEpoch,
+          })
+          .timeout(timeout);
+      if (result == null) {
+        return const CalendarWriteFailed('could not save the event');
+      }
+      return CalendarEventSaved(result);
+    } on PlatformException catch (error) {
+      return switch (error.code) {
+        'NO_PERMISSION' => const CalendarWriteDenied(permanent: false),
+        'NOT_FOUND' => const CalendarWriteFailed('that event is gone'),
+        _ => const CalendarWriteFailed('could not save the event'),
+      };
+    } on MissingPluginException {
+      return const CalendarWriteFailed('calendar is not supported here');
+    } on TimeoutException {
+      return const CalendarWriteFailed('the calendar did not answer');
+    }
+  }
+
+  @override
+  Future<CalendarDeleteResult> deleteEvent(int id) async {
+    final status = await _permissions.request(AppPermission.calendarWrite);
+    if (status != PermissionStatus.granted) {
+      return CalendarDeleteDenied(
+        permanent: status == PermissionStatus.permanentlyDenied,
+      );
+    }
+    try {
+      final removed = await _channel
+          .invokeMethod<bool>('deleteEvent', {'id': id})
+          .timeout(timeout);
+      return removed == true
+          ? const CalendarEventDeleted()
+          : const CalendarEventAlreadyGone();
+    } on PlatformException catch (error) {
+      return switch (error.code) {
+        'NO_PERMISSION' => const CalendarDeleteDenied(permanent: false),
+        _ => const CalendarDeleteFailed('could not delete the event'),
+      };
+    } on MissingPluginException {
+      return const CalendarDeleteFailed('calendar is not supported here');
+    } on TimeoutException {
+      return const CalendarDeleteFailed('the calendar did not answer');
+    }
+  }
+
+  static CalendarInfo? _parseCalendar(Map<Object?, Object?> entry) {
+    final id = entry['id'];
+    final name = entry['name'];
+    final accountName = entry['accountName'];
+    if (id is! int || name is! String || accountName is! String) return null;
+    return CalendarInfo(
+      id: id,
+      name: name.trim().isEmpty ? accountName : name.trim(),
+      accountName: accountName,
+      primary: entry['primary'] == true,
+    );
+  }
+
   CalendarEvent? _parse(Map<Object?, Object?> entry) {
     final id = entry['id'];
     final begin = entry['begin'];
@@ -85,6 +201,7 @@ class AndroidCalendarService implements CalendarService {
       location: _text(entry['location']),
       calendar: _text(entry['calendar']),
       color: _color(entry['color']),
+      description: _text(entry['description']),
     );
   }
 

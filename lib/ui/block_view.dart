@@ -41,7 +41,11 @@ class BlockView extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 4),
         child: switch (block) {
           final MonthBlock month => MonthView(block: month, onRun: onRun),
-          final AgendaBlock agenda => AgendaView(block: agenda, onRun: onRun),
+          final AgendaBlock agenda => AgendaView(
+            block: agenda,
+            onRun: onRun,
+            onFill: onFill,
+          ),
           final WeatherBlock weather => WeatherView(block: weather),
           final HelpOverviewBlock help => HelpOverviewView(
             block: help,

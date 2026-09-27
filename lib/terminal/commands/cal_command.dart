@@ -7,36 +7,39 @@ import 'package:android_terminal_launcher/terminal/commands/plain_flag.dart';
 import 'package:android_terminal_launcher/terminal/tools/calendar_blocks.dart';
 import 'package:android_terminal_launcher/terminal/tools/calendar_dates.dart';
 import 'package:android_terminal_launcher/terminal/tools/calendar_text.dart';
+import 'package:android_terminal_launcher/terminal/tools/last_calendar_events.dart';
 
 const _views = ['day', 'week', 'month'];
 const _dayWords = ['today', 'tomorrow', 'yesterday'];
 
 /// `cal` for this month, `cal week`, `cal tomorrow`, `cal 2026-10`,
-/// `cal day 2026-09-30`: the phone's calendar, read-only.
-Command calCommand(CalendarService calendar) => Command(
-  name: 'cal',
-  aliases: ['calendar'],
-  description: 'Show your calendar',
-  usage: 'cal [day|week|month]',
-  forms: [
-    'cal',
-    'cal month [2026-10]',
-    'cal week [date]',
-    'cal day [date]',
-    'cal today|tomorrow',
-    'cal <date>',
-  ],
-  examples: ['cal', 'cal week', 'cal tomorrow', 'cal 2026-10-03'],
-  notes: [
-    'date: today, tomorrow, yesterday',
-    '  or 2026-09-30',
-    'month: this, next, last or 2026-10',
-    '--plain: text only, this once',
-    '> today, * a day with events',
-  ],
-  run: (context) => _cal(calendar, context.args, context.now()),
-  argSuggestions: _suggestArgs,
-);
+/// `cal day 2026-09-30`: the phone's calendar, read-only. `cal day`/`cal week`
+/// fill [lastEvents], which `event edit`/`event rm` read by number.
+Command calCommand(CalendarService calendar, LastCalendarEvents lastEvents) =>
+    Command(
+      name: 'cal',
+      aliases: ['calendar'],
+      description: 'Show your calendar',
+      usage: 'cal [day|week|month]',
+      forms: [
+        'cal',
+        'cal month [2026-10]',
+        'cal week [date]',
+        'cal day [date]',
+        'cal today|tomorrow',
+        'cal <date>',
+      ],
+      examples: ['cal', 'cal week', 'cal tomorrow', 'cal 2026-10-03'],
+      notes: [
+        'date: today, tomorrow, yesterday',
+        '  or 2026-09-30',
+        'month: this, next, last or 2026-10',
+        '--plain: text only, this once',
+        '> today, * a day with events',
+      ],
+      run: (context) => _cal(calendar, lastEvents, context.args, context.now()),
+      argSuggestions: _suggestArgs,
+    );
 
 List<String> _suggestArgs(String partial, List<AppInfo> apps) {
   final words = partial.split(' ');
@@ -63,6 +66,7 @@ List<String> _suggestArgs(String partial, List<AppInfo> apps) {
 
 Future<CommandResult> _cal(
   CalendarService calendar,
+  LastCalendarEvents lastEvents,
   List<String> allArgs,
   DateTime now,
 ) async {
@@ -112,6 +116,7 @@ Future<CommandResult> _cal(
   if (day == null) return CommandFailure.single(Messages.calBadDate(argument!));
   if (view == 'week') {
     final monday = startOfWeek(day);
+    final days = [for (var i = 0; i < 7; i++) addDays(monday, i)];
     final result = await calendar.events(from: monday, to: addDays(monday, 7));
     return _show(
       result,
@@ -121,13 +126,15 @@ Future<CommandResult> _cal(
             ? null
             : agendaBlock(
                 events,
-                [for (var i = 0; i < 7; i++) addDays(monday, i)],
+                days,
                 now,
                 title: weekHeading(monday),
                 previousCommand: 'cal week ${isoDate(addDays(monday, -7))}',
                 nextCommand: 'cal week ${isoDate(addDays(monday, 7))}',
               ),
       ),
+      lastEvents: lastEvents,
+      shown: (events) => flattenEvents(events, days),
     );
   }
   final result = await calendar.events(from: day, to: addDays(day, 1));
@@ -137,18 +144,26 @@ Future<CommandResult> _cal(
       dayView(events, day),
       block: plain ? null : agendaBlock(events, [day], now),
     ),
+    lastEvents: lastEvents,
+    shown: (events) => flattenEvents(events, [day]),
   );
 }
 
 CommandResult _show(
   CalendarResult result,
-  CommandOutput Function(List<CalendarEvent> events) render,
-) => switch (result) {
-  CalendarEvents(:final events) => render(events),
-  CalendarDenied(:final permanent) => CommandFailure(
-    Messages.permissionFailure(Messages.calendar, permanent: permanent),
-  ),
-  CalendarUnavailable(:final reason) => CommandFailure.single(
-    Messages.calError(reason),
-  ),
-};
+  CommandOutput Function(List<CalendarEvent> events) render, {
+  LastCalendarEvents? lastEvents,
+  List<CalendarEvent> Function(List<CalendarEvent> events)? shown,
+}) {
+  switch (result) {
+    case CalendarEvents(:final events):
+      if (lastEvents != null && shown != null) lastEvents.show(shown(events));
+      return render(events);
+    case CalendarDenied(:final permanent):
+      return CommandFailure(
+        Messages.permissionFailure(Messages.calendar, permanent: permanent),
+      );
+    case CalendarUnavailable(:final reason):
+      return CommandFailure.single(Messages.calError(reason));
+  }
+}

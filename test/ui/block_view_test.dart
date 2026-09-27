@@ -56,6 +56,8 @@ AgendaBlock _week({String longTitle = 'Standup'}) => AgendaBlock(
       command: 'cal day 2026-09-25',
       entries: [
         AgendaEntry(
+          number: 1,
+          id: 1,
           start: '08:00',
           end: '09:00',
           title: 'Breakfast',
@@ -69,12 +71,16 @@ AgendaBlock _week({String longTitle = 'Standup'}) => AgendaBlock(
       command: 'cal day 2026-09-26',
       entries: [
         const AgendaEntry(
+          number: 2,
+          id: 2,
           start: 'all day',
           title: 'Holiday',
           allDay: true,
           color: _family,
         ),
         AgendaEntry(
+          number: 3,
+          id: 3,
           start: '10:00',
           end: '11:30',
           title: longTitle,
@@ -102,6 +108,7 @@ Future<List<String>> _pumpBlock(
   ThemeChoice theme = ThemeChoice.dark,
   FontSizeChoice fontSize = FontSizeChoice.normal,
   double width = 400,
+  List<String>? filled,
 }) async {
   tester.view.physicalSize = Size(width, 1600);
   tester.view.devicePixelRatio = 1;
@@ -114,7 +121,11 @@ Future<List<String>> _pumpBlock(
         body: SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16),
-            child: BlockView(block: block, onRun: ran.add),
+            child: BlockView(
+              block: block,
+              onRun: ran.add,
+              onFill: filled?.add ?? BlockView.ignore,
+            ),
           ),
         ),
       ),
@@ -368,7 +379,9 @@ void main() {
             AgendaDay(
               label: 'Sat 26 Sep',
               command: 'cal day 2026-09-26',
-              entries: [AgendaEntry(start: '09:00', title: 'Plain')],
+              entries: [
+                AgendaEntry(number: 1, id: 1, start: '09:00', title: 'Plain'),
+              ],
             ),
           ],
         ),
@@ -376,6 +389,18 @@ void main() {
 
       expect(find.text('Plain'), findsOneWidget);
       expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('a pencil and a bin fill event edit/rm, by real id', (
+      tester,
+    ) async {
+      final filled = <String>[];
+      await _pumpBlock(tester, _week(), filled: filled);
+
+      await tester.tap(find.byKey(agendaEditKey(3)));
+      await tester.tap(find.byKey(agendaRemoveKey(3)));
+
+      expect(filled, ['event edit #3', 'event rm #3']);
     });
   });
 

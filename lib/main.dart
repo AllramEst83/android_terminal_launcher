@@ -78,7 +78,10 @@ Future<void> main() async {
         ),
         location: AndroidLocationService(permissions: permissions),
       ),
-      CalendarProvider(AndroidCalendarService(permissions: permissions)),
+      CalendarProvider(
+        AndroidCalendarService(permissions: permissions),
+        store: store,
+      ),
       PhoneProvider(
         contacts: AndroidContactsService(permissions: permissions),
         phone: AndroidPhoneService(permissions: permissions),

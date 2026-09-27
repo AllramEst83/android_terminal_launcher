@@ -134,18 +134,34 @@ String eventLine(CalendarEvent event, DateTime day) {
   return '${timeLabel(event, day).padRight(11)} $title$place';
 }
 
-/// The day's heading, then its events, or a line saying there are none.
+/// [eventLine] with its position in the shown list first, so `event edit`/
+/// `event rm` can name it by number: ` 1 09:00-10:00 Standup`.
+String numberedEventLine(int number, CalendarEvent event, DateTime day) =>
+    '${number.toString().padLeft(2)} ${eventLine(event, day)}';
+
+/// The events on [days] (midnights, in order), flattened the way they are
+/// shown: day by day, all-day first then by start time within each day. A
+/// shown number (`event edit <n>`) refers to a position in this order.
+List<CalendarEvent> flattenEvents(
+  Iterable<CalendarEvent> events,
+  List<DateTime> days,
+) => [for (final day in days) ...eventsOn(events, day)];
+
+/// The day's heading, then its events (numbered, so `event edit`/`event rm`
+/// can name one), or a line saying there are none.
 List<String> dayView(Iterable<CalendarEvent> events, DateTime day) {
   final today = eventsOn(events, day);
   return [
     dayHeading(day),
     if (today.isEmpty) 'no events',
-    for (final event in today) eventLine(event, day),
+    for (var i = 0; i < today.length; i++)
+      numberedEventLine(i + 1, today[i], day),
   ];
 }
 
-/// Seven days from the Monday of [day]'s week. A day with nothing on it is one
-/// line, so a quiet week stays short.
+/// Seven days from the Monday of [day]'s week, each event numbered across the
+/// whole week (so `event edit`/`event rm` can name one). A day with nothing on
+/// it is one line, so a quiet week stays short.
 List<String> weekView(
   Iterable<CalendarEvent> events,
   DateTime day,
@@ -153,13 +169,15 @@ List<String> weekView(
 ) {
   final monday = startOfWeek(day);
   final lines = <String>[];
+  var number = 1;
   for (var i = 0; i < 7; i++) {
     final date = addDays(monday, i);
     final mark = startOfDay(date) == startOfDay(today) ? ' (today)' : '';
     final onDate = eventsOn(events, date);
     lines.add('${dayHeading(date)}$mark${onDate.isEmpty ? '  -' : ''}');
     for (final event in onDate) {
-      lines.add('  ${eventLine(event, date)}');
+      lines.add('  ${numberedEventLine(number, event, date)}');
+      number++;
     }
   }
   return lines;

@@ -3,6 +3,7 @@ import 'package:android_terminal_launcher/terminal/blocks.dart';
 import 'package:android_terminal_launcher/terminal/command.dart';
 import 'package:android_terminal_launcher/terminal/command_result.dart';
 import 'package:android_terminal_launcher/terminal/commands/cal_command.dart';
+import 'package:android_terminal_launcher/terminal/tools/last_calendar_events.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../fakes/fake_app_repository.dart';
@@ -21,7 +22,7 @@ final _lunch = CalendarEvent(
 
 Future<CommandOutput> _run(List<String> args) async {
   final calendar = FakeCalendarService(CalendarEvents([_lunch]));
-  final result = await calCommand(calendar).run(
+  final result = await calCommand(calendar, LastCalendarEvents()).run(
     CommandContext(
       args: args,
       apps: FakeAppRepository(),

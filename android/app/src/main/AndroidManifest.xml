@@ -13,6 +13,10 @@
     <!-- `cal`: shows events from the phone's calendars. Asked for at runtime. -->
     <uses-permission android:name="android.permission.READ_CALENDAR" />
 
+    <!-- `event add/edit/rm`: creates and changes calendar events. Asked for at
+         runtime, only when one of those actually runs. -->
+    <uses-permission android:name="android.permission.WRITE_CALENDAR" />
+
     <!-- `contact` and `call <name>`: look a name up in the phone book. -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 

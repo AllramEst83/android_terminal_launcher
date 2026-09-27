@@ -60,7 +60,8 @@ palette.
 | `convert <n> <from> <to>` | Units or money, e.g. `convert 5 km mi`, `convert 100 usd sek`; `convert units`, `convert currencies` |
 | `texttv [page]` | Swedish Text TV in colour, with its logos and tappable page numbers: `texttv 104`, `texttv utrikes`, `texttv 130 2` |
 | `weather [city]` | Weather and a 5-day forecast, from SMHI (with the nearest station's measurements) across northern Europe and from Open-Meteo elsewhere; with no city, uses your location (or your saved home city); `weather home <city>` saves one |
-| `cal [day\|week\|month]` | Your phone's calendar (read-only): a month card, or an agenda for a day or week |
+| `cal [day\|week\|month]` | Your phone's calendar: a month card, or an agenda for a day or week, each event numbered |
+| `event add\|edit\|rm` | Add, change or remove a calendar event, one question at a time (title, description, start, end, which calendar); `event rm` asks before it removes anything |
 | `timer <length> [label]` | Start a timer in your clock app: `timer 10m`, `timer 1h30m tea`, `timer 90s`; a bare number is minutes. With no length it opens your timers |
 | `alarm <time> [days] [label]` | Set an alarm in your clock app: `alarm 07:30`, `alarm 7am`, `alarm 6:45 weekdays gym`. With no time it opens your alarms |
 | `history [clear]` | The commands you use most (also shown above an empty prompt); `history clear` forgets them |
@@ -95,10 +96,11 @@ for you to check and send.
 ## Permissions
 
 Asked for the first time a command needs them, and never otherwise: internet
-(Text TV, weather, rates, mail), location (`weather`), calendar (`cal`),
-contacts (`contact`, `call`, `sms`), phone (`call`) and SMS (`sms`). Refuse one
-and only that command is affected. `timer` and `alarm` need the ordinary
-"set alarm" permission, which Android grants at install.
+(Text TV, weather, rates, mail), location (`weather`), calendar (`cal`), a
+second one to write to it (`event add`/`edit`/`rm`, only when one of those
+actually runs), contacts (`contact`, `call`, `sms`), phone (`call`) and SMS
+(`sms`). Refuse one and only that command is affected. `timer` and `alarm`
+need the ordinary "set alarm" permission, which Android grants at install.
 
 
 ## Mail

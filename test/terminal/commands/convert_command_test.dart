@@ -30,7 +30,9 @@ Future<List<String>> _lines(List<String> args) async {
   return switch (result) {
     CommandOutput(:final lines) => lines,
     CommandFailure(:final lines) => lines,
-    CommandClear() || CommandAskSecret() => fail('unexpected clear'),
+    CommandClear() ||
+    CommandAskSecret() ||
+    CommandAsk() => fail('unexpected clear'),
   };
 }
 
@@ -163,7 +165,9 @@ void main() {
       return switch (result) {
         CommandOutput(:final lines) => lines,
         CommandFailure(:final lines) => lines,
-        CommandClear() || CommandAskSecret() => fail('unexpected clear'),
+        CommandClear() ||
+        CommandAskSecret() ||
+        CommandAsk() => fail('unexpected clear'),
       };
     }
 

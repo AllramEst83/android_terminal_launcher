@@ -153,6 +153,47 @@ void main() {
     });
   });
 
+  group('numberedEventLine', () {
+    test('pads a single digit, does not pad a double one', () {
+      final event = _timed(
+        'Standup',
+        DateTime(2026, 9, 26, 9),
+        DateTime(2026, 9, 26, 9, 15),
+      );
+
+      expect(numberedEventLine(1, event, _saturday), ' 1 09:00-09:15 Standup');
+      expect(numberedEventLine(12, event, _saturday), '12 09:00-09:15 Standup');
+    });
+  });
+
+  group('flattenEvents', () {
+    test('day by day, in the order eventsOn gives each day', () {
+      final early = _timed(
+        'early',
+        DateTime(2026, 9, 26, 8),
+        DateTime(2026, 9, 26, 9),
+      );
+      final late = _timed(
+        'late',
+        DateTime(2026, 9, 26, 15),
+        DateTime(2026, 9, 26, 16),
+      );
+      final tomorrow = _timed(
+        'tomorrow',
+        DateTime(2026, 9, 27, 8),
+        DateTime(2026, 9, 27, 9),
+      );
+
+      expect(
+        flattenEvents(
+          [late, tomorrow, early],
+          [_saturday, DateTime(2026, 9, 27)],
+        ),
+        [early, late, tomorrow],
+      );
+    });
+  });
+
   group('eventsOn', () {
     test('all-day first, then by start time', () {
       final late = _timed(
@@ -212,7 +253,7 @@ void main() {
 
       expect(dayView([event], _saturday), [
         'Sat 26 Sep 2026',
-        '12:00-13:00 Lunch',
+        ' 1 12:00-13:00 Lunch',
       ]);
     });
 
@@ -233,7 +274,7 @@ void main() {
         'Mon 21 Sep 2026  -',
         'Tue 22 Sep 2026  -',
         'Wed 23 Sep 2026',
-        '  12:00-13:00 Lunch',
+        '   1 12:00-13:00 Lunch',
         'Thu 24 Sep 2026  -',
         'Fri 25 Sep 2026  -',
         'Sat 26 Sep 2026 (today)  -',

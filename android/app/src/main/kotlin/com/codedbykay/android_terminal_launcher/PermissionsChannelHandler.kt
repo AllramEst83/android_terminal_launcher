@@ -112,8 +112,9 @@ class PermissionsChannelHandler(
         // (and is not declared in the manifest).
         private val PERMISSIONS = mapOf(
             "location" to arrayOf(Manifest.permission.ACCESS_COARSE_LOCATION),
-            // Read-only for now; creating events adds WRITE_CALENDAR.
             "calendar" to arrayOf(Manifest.permission.READ_CALENDAR),
+            // Only `event add/edit/rm` asks for this; reading never needs it.
+            "calendarWrite" to arrayOf(Manifest.permission.WRITE_CALENDAR),
             "contacts" to arrayOf(Manifest.permission.READ_CONTACTS),
             // Placing a call directly; without it the dialer is opened instead.
             "phone" to arrayOf(Manifest.permission.CALL_PHONE),

@@ -65,6 +65,7 @@ AgendaBlock agendaBlock(
   final today = startOfDay(now);
   final shown = <CalendarEvent>[];
   final agendaDays = <AgendaDay>[];
+  var number = 1;
   for (final day in days) {
     final onDay = eventsOn(events, day);
     shown.addAll(onDay);
@@ -73,7 +74,7 @@ AgendaBlock agendaBlock(
         label: dayLabel(day),
         today: day == today,
         command: 'cal day ${isoDate(day)}',
-        entries: [for (final event in onDay) _entry(event, day, now)],
+        entries: [for (final event in onDay) _entry(number++, event, day, now)],
       ),
     );
   }
@@ -86,9 +87,16 @@ AgendaBlock agendaBlock(
   );
 }
 
-AgendaEntry _entry(CalendarEvent event, DateTime day, DateTime now) {
+AgendaEntry _entry(
+  int number,
+  CalendarEvent event,
+  DateTime day,
+  DateTime now,
+) {
   final times = eventTimes(event, day);
   return AgendaEntry(
+    number: number,
+    id: event.id,
     start: times.start,
     end: times.end,
     title: event.title.isEmpty ? '(no title)' : event.title,

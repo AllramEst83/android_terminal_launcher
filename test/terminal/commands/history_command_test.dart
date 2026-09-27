@@ -26,7 +26,9 @@ class _Rig {
 List<String> _lines(CommandResult result) => switch (result) {
   CommandOutput(:final lines) => lines,
   CommandFailure(:final lines) => lines,
-  CommandClear() || CommandAskSecret() => fail('unexpected result'),
+  CommandClear() ||
+  CommandAskSecret() ||
+  CommandAsk() => fail('unexpected result'),
 };
 
 void main() {

@@ -328,4 +328,165 @@ void main() {
       isA<CalendarUnavailable>(),
     );
   });
+
+  group('writableCalendars', () {
+    test('asks for read permission and maps the reply', () async {
+      _mockChannel(
+        (call) async => [
+          {
+            'id': 1,
+            'name': 'Family',
+            'accountName': 'a@x.com',
+            'primary': false,
+          },
+          {'id': 2, 'name': '', 'accountName': 'a@x.com', 'primary': true},
+        ],
+      );
+
+      final result = await service.writableCalendars() as CalendarList;
+
+      expect(permissions.requested, [AppPermission.calendar]);
+      expect(result.calendars.map((c) => (c.id, c.name, c.primary)), [
+        (1, 'Family', false),
+        // An unnamed calendar (the account's own) falls back to its address.
+        (2, 'a@x.com', true),
+      ]);
+    });
+
+    test('a refusal is a denial, permanent or not', () async {
+      permissions.answer = PermissionStatus.permanentlyDenied;
+
+      final result = await service.writableCalendars() as CalendarListDenied;
+
+      expect(result.permanent, isTrue);
+    });
+
+    test('skips a malformed entry', () async {
+      _mockChannel(
+        (call) async => [
+          {'id': 1},
+          {'id': 2, 'name': 'Family', 'accountName': 'a@x.com'},
+        ],
+      );
+
+      final result = await service.writableCalendars() as CalendarList;
+
+      expect(result.calendars, hasLength(1));
+    });
+
+    test('any platform error is unavailable', () async {
+      _mockChannel((call) async => throw PlatformException(code: 'x'));
+
+      expect(await service.writableCalendars(), isA<CalendarListUnavailable>());
+    });
+  });
+
+  NewCalendarEvent event({int calendarId = 1}) => NewCalendarEvent(
+    calendarId: calendarId,
+    title: 'Standup',
+    description: 'daily',
+    start: DateTime(2026, 9, 26, 9),
+    end: DateTime(2026, 9, 26, 9, 15),
+  );
+
+  group('createEvent', () {
+    test('asks for write permission and sends the event, no id', () async {
+      MethodCall? seen;
+      _mockChannel((call) async {
+        seen = call;
+        return 42;
+      });
+
+      final result = await service.createEvent(event()) as CalendarEventSaved;
+
+      expect(permissions.requested, [AppPermission.calendarWrite]);
+      expect(seen?.method, 'insertEvent');
+      expect(seen?.arguments, {
+        'calendarId': 1,
+        'title': 'Standup',
+        'description': 'daily',
+        'begin': _ms(DateTime(2026, 9, 26, 9)),
+        'end': _ms(DateTime(2026, 9, 26, 9, 15)),
+      });
+      expect(result.id, 42);
+    });
+
+    test('a refusal never reaches the platform', () async {
+      permissions.answer = PermissionStatus.denied;
+      var asked = false;
+      _mockChannel((call) async {
+        asked = true;
+        return null;
+      });
+
+      final result = await service.createEvent(event()) as CalendarWriteDenied;
+
+      expect(result.permanent, isFalse);
+      expect(asked, isFalse);
+    });
+
+    test('any platform error fails', () async {
+      _mockChannel((call) async => throw PlatformException(code: 'x'));
+
+      expect(await service.createEvent(event()), isA<CalendarWriteFailed>());
+    });
+  });
+
+  group('updateEvent', () {
+    test('sends the id along with the event', () async {
+      MethodCall? seen;
+      _mockChannel((call) async {
+        seen = call;
+        return 7;
+      });
+
+      final result =
+          await service.updateEvent(7, event()) as CalendarEventSaved;
+
+      expect(seen?.method, 'updateEvent');
+      expect(seen?.arguments, containsPair('id', 7));
+      expect(result.id, 7);
+    });
+
+    test('an event that is gone fails, not a crash', () async {
+      _mockChannel((call) async => throw PlatformException(code: 'NOT_FOUND'));
+
+      expect(await service.updateEvent(7, event()), isA<CalendarWriteFailed>());
+    });
+  });
+
+  group('deleteEvent', () {
+    test('asks for write permission and sends the id', () async {
+      MethodCall? seen;
+      _mockChannel((call) async {
+        seen = call;
+        return true;
+      });
+
+      final result = await service.deleteEvent(9) as CalendarEventDeleted;
+
+      expect(permissions.requested, [AppPermission.calendarWrite]);
+      expect(seen?.method, 'deleteEvent');
+      expect(seen?.arguments, {'id': 9});
+      expect(result, const CalendarEventDeleted());
+    });
+
+    test('false means it was already gone, not a failure', () async {
+      _mockChannel((call) async => false);
+
+      expect(await service.deleteEvent(9), isA<CalendarEventAlreadyGone>());
+    });
+
+    test('a refusal is a denial', () async {
+      permissions.answer = PermissionStatus.denied;
+
+      expect(await service.deleteEvent(9), isA<CalendarDeleteDenied>());
+    });
+
+    test('any platform error fails', () async {
+      _mockChannel((call) async => throw PlatformException(code: 'x'));
+
+      expect(await service.deleteEvent(9), isA<CalendarDeleteFailed>());
+    });
+  });
 }

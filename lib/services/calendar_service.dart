@@ -10,6 +10,7 @@ class CalendarEvent {
     this.location,
     this.calendar,
     this.color,
+    this.description,
   });
 
   /// The event's id in Android's calendar provider; shared by all repeats.
@@ -31,6 +32,10 @@ class CalendarEvent {
   /// The colour Android shows it in (the event's own, else its calendar's) as
   /// 0xAARRGGBB, or null if none was given.
   final int? color;
+
+  /// The longer note under the title, for `event edit` to show and keep
+  /// unless it is changed. Null when there is none.
+  final String? description;
 }
 
 sealed class CalendarResult {
@@ -61,10 +66,138 @@ class CalendarUnavailable extends CalendarResult {
   final String reason;
 }
 
+/// A calendar an event can be written to: one Android will actually accept an
+/// insert for (`CALENDAR_ACCESS_LEVEL` at least contributor), which is why a
+/// calendar someone only shared read-only with the user never appears here.
+class CalendarInfo {
+  const CalendarInfo({
+    required this.id,
+    required this.name,
+    required this.accountName,
+    required this.primary,
+  });
+
+  /// Android's id for the calendar; what an event is filed under.
+  final int id;
+
+  /// `Family`, or the account's own address when it has no separate name.
+  final String name;
+
+  /// The Google (or other) account it syncs under.
+  final String accountName;
+
+  /// Whether this is the account's own default calendar, for picking a
+  /// sensible one when nothing has been used before.
+  final bool primary;
+}
+
+/// A timed event to create or replace: no all-day events yet.
+class NewCalendarEvent {
+  const NewCalendarEvent({
+    required this.calendarId,
+    required this.title,
+    this.description,
+    required this.start,
+    required this.end,
+  });
+
+  final int calendarId;
+  final String title;
+  final String? description;
+  final DateTime start;
+  final DateTime end;
+}
+
+sealed class CalendarListResult {
+  const CalendarListResult();
+}
+
+class CalendarList extends CalendarListResult {
+  const CalendarList(this.calendars);
+
+  final List<CalendarInfo> calendars;
+}
+
+class CalendarListDenied extends CalendarListResult {
+  const CalendarListDenied({required this.permanent});
+
+  final bool permanent;
+}
+
+class CalendarListUnavailable extends CalendarListResult {
+  const CalendarListUnavailable(this.reason);
+
+  final String reason;
+}
+
+sealed class CalendarWriteResult {
+  const CalendarWriteResult();
+}
+
+/// The event now exists (an add) or was changed (an edit); [id] is its
+/// Android id either way.
+class CalendarEventSaved extends CalendarWriteResult {
+  const CalendarEventSaved(this.id);
+
+  final int id;
+}
+
+class CalendarWriteDenied extends CalendarWriteResult {
+  const CalendarWriteDenied({required this.permanent});
+
+  final bool permanent;
+}
+
+class CalendarWriteFailed extends CalendarWriteResult {
+  const CalendarWriteFailed(this.reason);
+
+  final String reason;
+}
+
+sealed class CalendarDeleteResult {
+  const CalendarDeleteResult();
+}
+
+class CalendarEventDeleted extends CalendarDeleteResult {
+  const CalendarEventDeleted();
+}
+
+/// It was gone already (deleted elsewhere, or twice from this phone): not a
+/// failure, since the end state is what was wanted.
+class CalendarEventAlreadyGone extends CalendarDeleteResult {
+  const CalendarEventAlreadyGone();
+}
+
+class CalendarDeleteDenied extends CalendarDeleteResult {
+  const CalendarDeleteDenied({required this.permanent});
+
+  final bool permanent;
+}
+
+class CalendarDeleteFailed extends CalendarDeleteResult {
+  const CalendarDeleteFailed(this.reason);
+
+  final String reason;
+}
+
 /// The phone's calendars (every account Android syncs), read through
 /// Android's calendar provider. Asks for permission itself the first time.
 abstract class CalendarService {
   /// Events overlapping the half-open range [from, to). Never throws; every
   /// failure is a [CalendarDenied] or [CalendarUnavailable].
   Future<CalendarResult> events({required DateTime from, required DateTime to});
+
+  /// The calendars an event could be added to. Only needs read permission:
+  /// which calendars are writable is itself a readable fact.
+  Future<CalendarListResult> writableCalendars();
+
+  /// Adds [event] as a new event. Never throws.
+  Future<CalendarWriteResult> createEvent(NewCalendarEvent event);
+
+  /// Replaces the event [id]'s fields with [event]'s. Never throws; a
+  /// [CalendarWriteFailed] covers an event that no longer exists.
+  Future<CalendarWriteResult> updateEvent(int id, NewCalendarEvent event);
+
+  /// Removes the event [id]. Never throws.
+  Future<CalendarDeleteResult> deleteEvent(int id);
 }

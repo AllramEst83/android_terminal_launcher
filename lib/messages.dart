@@ -118,6 +118,37 @@ abstract final class Messages {
       "'$text' is not a month (try 2026-09)";
   static String calError(String reason) => 'cal: $reason';
 
+  static const eventUsage = ['usage: event add|edit|rm', 'try: help event'];
+  static const eventTitlePrompt = 'title?';
+  static String eventTitlePromptEdit(String current) => 'title? [$current]';
+  static const eventTitleNeeded = "title can't be empty; title?";
+  static const eventDescriptionPrompt = 'description? (optional)';
+  static String eventDescriptionPromptEdit(String current) =>
+      'description? [$current]';
+  static const eventStartPrompt = 'starts when? (e.g. today 14:00)';
+  static String eventStartPromptEdit(String current) =>
+      'starts when? [$current]';
+  static String eventBadStart(String text) =>
+      "'$text' is not a time; starts when?";
+  static String eventEndPrompt(String fallback) => 'until when? ($fallback)';
+  static String eventEndPromptEdit(String current) => 'until when? [$current]';
+  static String eventBadEnd(String text) =>
+      "'$text' is not a time or length; until when?";
+  static String eventCalendarPrompt(String fallback) =>
+      'which calendar? ($fallback)';
+  static String eventBadCalendar(String text) =>
+      "no calendar called '$text'; which calendar?";
+  static const eventNoCalendars = 'no calendar you can add to';
+  static String eventAdded(String title) => 'added: $title';
+  static String eventUpdated(String title) => 'updated: $title';
+  static String eventError(String reason) => 'event: $reason';
+  static const eventNoList = 'run cal day or cal week first';
+  static String eventNotFound(String target) =>
+      "no event '$target' in the last list shown";
+  static const eventDeleteConfirm = 'yes, delete';
+  static const eventDeleted = 'deleted';
+  static const eventGone = 'already gone';
+
   static const contacts = 'contacts';
   static const callUsage = ['usage: call <name or number>', 'try: help call'];
   static const contactUsage = ['usage: contact <name>', 'try: help contact'];
@@ -246,6 +277,7 @@ abstract final class Messages {
 
   static const secretEcho = '••••••••';
   static const secretCancelled = 'cancelled';
+  static const askCancelled = 'cancelled';
 
   /// The text of the spinner line, for what reads the log without drawing it
   /// (the UI shows a turning bar in its place).
