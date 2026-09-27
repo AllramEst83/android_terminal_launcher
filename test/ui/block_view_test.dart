@@ -333,6 +333,33 @@ void main() {
       expect(find.byKey(agendaLegendKey), findsNothing);
     });
 
+    testWidgets('a heading with arrows steps to the neighbouring week', (
+      tester,
+    ) async {
+      final ran = await _pumpBlock(
+        tester,
+        AgendaBlock(
+          days: _week().days,
+          title: '21–27 Sep 2026',
+          previousCommand: 'cal week 2026-09-14',
+          nextCommand: 'cal week 2026-09-28',
+        ),
+      );
+
+      expect(find.text('21–27 Sep 2026'), findsOneWidget);
+      await tester.tap(find.byKey(agendaPreviousKey));
+      await tester.tap(find.byKey(agendaNextKey));
+
+      expect(ran, ['cal week 2026-09-14', 'cal week 2026-09-28']);
+    });
+
+    testWidgets('no title means no heading at all', (tester) async {
+      await _pumpBlock(tester, _week());
+
+      expect(find.byKey(agendaPreviousKey), findsNothing);
+      expect(find.byKey(agendaNextKey), findsNothing);
+    });
+
     testWidgets('an event with no colour still gets a bar', (tester) async {
       await _pumpBlock(
         tester,

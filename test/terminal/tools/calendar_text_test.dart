@@ -34,6 +34,14 @@ void main() {
       expect(monthHeading(_saturday), 'September 2026');
     });
 
+    test('a week heading spans Monday to Sunday, with the year', () {
+      expect(weekHeading(DateTime(2026, 9, 21)), '21–27 Sep 2026');
+    });
+
+    test('a week heading names both months when it crosses one', () {
+      expect(weekHeading(DateTime(2026, 9, 28)), '28 Sep–4 Oct 2026');
+    });
+
     test('the week starts on Monday, also from a Sunday', () {
       expect(startOfWeek(_saturday), DateTime(2026, 9, 21));
       expect(startOfWeek(DateTime(2026, 9, 27)), DateTime(2026, 9, 21));

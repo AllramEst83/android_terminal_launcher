@@ -50,12 +50,18 @@ MonthDay _monthDay(
 );
 
 /// The [days] (midnights, in order) with the events on each, as an
-/// [AgendaBlock]. [now] decides which of today's events are over or under way.
+/// [AgendaBlock]. [now] decides which of today's events are over or under
+/// way. [title], [previousCommand] and [nextCommand] draw the arrows either
+/// side of a heading for a block that can step through time (a week); leave
+/// them null for one that can't (a single day).
 AgendaBlock agendaBlock(
   Iterable<CalendarEvent> events,
   List<DateTime> days,
-  DateTime now,
-) {
+  DateTime now, {
+  String? title,
+  String? previousCommand,
+  String? nextCommand,
+}) {
   final today = startOfDay(now);
   final shown = <CalendarEvent>[];
   final agendaDays = <AgendaDay>[];
@@ -71,7 +77,13 @@ AgendaBlock agendaBlock(
       ),
     );
   }
-  return AgendaBlock(days: agendaDays, legend: _legend(shown));
+  return AgendaBlock(
+    days: agendaDays,
+    legend: _legend(shown),
+    title: title,
+    previousCommand: previousCommand,
+    nextCommand: nextCommand,
+  );
 }
 
 AgendaEntry _entry(CalendarEvent event, DateTime day, DateTime now) {

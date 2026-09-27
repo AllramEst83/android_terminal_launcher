@@ -7,12 +7,15 @@ import 'package:flutter/material.dart';
 ValueKey<String> agendaDayKey(String label) => ValueKey('agenda-day-$label');
 const agendaEntryKey = ValueKey('agenda-entry');
 const agendaLegendKey = ValueKey('agenda-legend');
+const agendaPreviousKey = ValueKey('agenda-previous');
+const agendaNextKey = ValueKey('agenda-next');
 
-/// Days as an agenda card: a heading per day (tap it to open that day), then
-/// each event as a row with a bar in its calendar's colour, its times stacked
-/// in a column, and its title and place wrapping under themselves rather than
-/// back to the left edge. Events that are over are dimmed and the one under
-/// way is lit.
+/// Days as an agenda card: when it can be stepped through time (a week), a
+/// heading with arrows either side, then a heading per day (tap it to open
+/// that day) and each event as a row with a bar in its calendar's colour, its
+/// times stacked in a column, and its title and place wrapping under
+/// themselves rather than back to the left edge. Events that are over are
+/// dimmed and the one under way is lit.
 class AgendaView extends StatelessWidget {
   const AgendaView({super.key, required this.block, required this.onRun});
 
@@ -23,10 +26,24 @@ class AgendaView extends StatelessWidget {
   Widget build(BuildContext context) {
     // A single day's heading would only run the command that drew it.
     final tappable = block.days.length > 1;
+    final title = block.title;
     return BlockCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          if (title != null) ...[
+            BlockNavHeader(
+              title: title,
+              previousCommand: block.previousCommand,
+              nextCommand: block.nextCommand,
+              onRun: onRun,
+              previousKey: agendaPreviousKey,
+              nextKey: agendaNextKey,
+              previousLabel: 'previous week',
+              nextLabel: 'next week',
+            ),
+            const SizedBox(height: 8),
+          ],
           for (var i = 0; i < block.days.length; i++) ...[
             if (i > 0) const SizedBox(height: 10),
             _DaySection(

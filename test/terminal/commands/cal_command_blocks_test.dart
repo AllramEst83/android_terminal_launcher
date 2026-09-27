@@ -53,6 +53,17 @@ void main() {
     expect(block.days[5].entries.single.color, 0xFF336699);
   });
 
+  test(
+    'the week comes with a heading and arrows to the week either side',
+    () async {
+      final block = (await _run(['week'])).block as AgendaBlock;
+
+      expect(block.title, '21–27 Sep 2026');
+      expect(block.previousCommand, 'cal week 2026-09-14');
+      expect(block.nextCommand, 'cal week 2026-09-28');
+    },
+  );
+
   test('a day is an agenda of one day, also by bare date and word', () async {
     for (final args in [
       ['day'],
@@ -64,6 +75,14 @@ void main() {
       expect(block.days.single.label, 'Sat 26 Sep', reason: '$args');
       expect(block.days.single.entries.single.phase, EntryPhase.past);
     }
+  });
+
+  test('a day has nowhere to step to, so no heading or arrows', () async {
+    final block = (await _run(['day'])).block as AgendaBlock;
+
+    expect(block.title, isNull);
+    expect(block.previousCommand, isNull);
+    expect(block.nextCommand, isNull);
   });
 
   test('--plain gives the text only, wherever it is put', () async {

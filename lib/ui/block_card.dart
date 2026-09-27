@@ -37,3 +37,100 @@ class BlockCard extends StatelessWidget {
     );
   }
 }
+
+/// A title with an arrow either side, for stepping back and forward through
+/// time (a month, a week). Every block that can do this shows it the same
+/// way; an arrow with no command does nothing when tapped.
+class BlockNavHeader extends StatelessWidget {
+  const BlockNavHeader({
+    super.key,
+    required this.title,
+    required this.onRun,
+    required this.previousKey,
+    required this.nextKey,
+    required this.previousLabel,
+    required this.nextLabel,
+    this.previousCommand,
+    this.nextCommand,
+  });
+
+  final String title;
+  final String? previousCommand;
+  final String? nextCommand;
+  final RunCommand onRun;
+  final Key previousKey;
+  final Key nextKey;
+  final String previousLabel;
+  final String nextLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).textTheme.bodyLarge ?? const TextStyle();
+    return Row(
+      children: [
+        _NavArrow(
+          key: previousKey,
+          symbol: '‹',
+          label: previousLabel,
+          command: previousCommand,
+          onRun: onRun,
+        ),
+        Expanded(
+          child: Text(
+            title,
+            textAlign: TextAlign.center,
+            style: base.copyWith(fontWeight: FontWeight.bold),
+          ),
+        ),
+        _NavArrow(
+          key: nextKey,
+          symbol: '›',
+          label: nextLabel,
+          command: nextCommand,
+          onRun: onRun,
+        ),
+      ],
+    );
+  }
+}
+
+class _NavArrow extends StatelessWidget {
+  const _NavArrow({
+    super.key,
+    required this.symbol,
+    required this.label,
+    required this.command,
+    required this.onRun,
+  });
+
+  final String symbol;
+  final String label;
+  final String? command;
+  final RunCommand onRun;
+
+  @override
+  Widget build(BuildContext context) {
+    final base = Theme.of(context).textTheme.bodyLarge;
+    final size = (base?.fontSize ?? 16) * 2.4;
+    final run = command;
+    return Semantics(
+      button: true,
+      label: label,
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: run == null ? null : () => onRun(run),
+        child: SizedBox(
+          width: size,
+          height: size,
+          child: Center(
+            child: Text(
+              symbol,
+              style: base?.copyWith(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}

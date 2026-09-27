@@ -56,13 +56,26 @@ class MonthDay {
 
 /// Days with their events, in order.
 final class AgendaBlock extends RichBlock {
-  const AgendaBlock({required this.days, this.legend = const []});
+  const AgendaBlock({
+    required this.days,
+    this.legend = const [],
+    this.title,
+    this.previousCommand,
+    this.nextCommand,
+  });
 
   final List<AgendaDay> days;
 
   /// Which colour is which calendar. Empty unless there are at least two
   /// calendars with a name, since one colour needs no key.
   final List<AgendaCalendar> legend;
+
+  /// A heading with arrows either side, for stepping back and forward through
+  /// time (a week). Null when there is nowhere to step to, such as a single
+  /// day.
+  final String? title;
+  final String? previousCommand;
+  final String? nextCommand;
 }
 
 class AgendaDay {

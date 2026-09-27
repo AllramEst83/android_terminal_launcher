@@ -53,6 +53,15 @@ List<String> shortWeekdays() => [
 String monthHeading(DateTime month) =>
     '${_months[month.month - 1]} ${month.year}';
 
+/// `22–28 Sep 2026`, or `29 Sep – 5 Oct 2026` when the week crosses a month.
+String weekHeading(DateTime monday) {
+  final sunday = addDays(monday, 6);
+  final left = monday.month == sunday.month
+      ? '${monday.day}'
+      : '${monday.day} ${shortMonth(monday)}';
+  return '$left–${sunday.day} ${shortMonth(sunday)} ${sunday.year}';
+}
+
 /// Whether [event] takes place on any part of [day].
 bool happensOn(CalendarEvent event, DateTime day) {
   final from = startOfDay(day);

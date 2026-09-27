@@ -29,30 +29,15 @@ class MonthView extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              _Arrow(
-                key: monthPreviousKey,
-                symbol: '‹',
-                label: 'previous month',
-                command: block.previousCommand,
-                onRun: onRun,
-              ),
-              Expanded(
-                child: Text(
-                  block.title,
-                  textAlign: TextAlign.center,
-                  style: base.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              _Arrow(
-                key: monthNextKey,
-                symbol: '›',
-                label: 'next month',
-                command: block.nextCommand,
-                onRun: onRun,
-              ),
-            ],
+          BlockNavHeader(
+            title: block.title,
+            previousCommand: block.previousCommand,
+            nextCommand: block.nextCommand,
+            onRun: onRun,
+            previousKey: monthPreviousKey,
+            nextKey: monthNextKey,
+            previousLabel: 'previous month',
+            nextLabel: 'next month',
           ),
           const SizedBox(height: 8),
           Row(
@@ -85,47 +70,6 @@ class MonthView extends StatelessWidget {
 double _cellHeight(TextStyle base) => _box(base) + 12;
 
 double _box(TextStyle base) => (base.fontSize ?? 16) * 1.9;
-
-class _Arrow extends StatelessWidget {
-  const _Arrow({
-    super.key,
-    required this.symbol,
-    required this.label,
-    required this.command,
-    required this.onRun,
-  });
-
-  final String symbol;
-  final String label;
-  final String? command;
-  final RunCommand onRun;
-
-  @override
-  Widget build(BuildContext context) {
-    final base = Theme.of(context).textTheme.bodyLarge;
-    final size = (base?.fontSize ?? 16) * 2.4;
-    final run = command;
-    return Semantics(
-      button: true,
-      label: label,
-      excludeSemantics: true,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(8),
-        onTap: run == null ? null : () => onRun(run),
-        child: SizedBox(
-          width: size,
-          height: size,
-          child: Center(
-            child: Text(
-              symbol,
-              style: base?.copyWith(fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _DayCell extends StatelessWidget {
   const _DayCell({required this.day, required this.onRun});

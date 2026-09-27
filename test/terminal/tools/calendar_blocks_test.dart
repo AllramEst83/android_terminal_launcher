@@ -183,6 +183,25 @@ void main() {
       expect(agenda(const []).days.single.entries, isEmpty);
     });
 
+    test('a title and arrows are passed through, and null without them', () {
+      expect(agenda(const []).title, isNull);
+      expect(agenda(const []).previousCommand, isNull);
+      expect(agenda(const []).nextCommand, isNull);
+
+      final block = agendaBlock(
+        const [],
+        [_today],
+        _now,
+        title: '21–27 Sep 2026',
+        previousCommand: 'cal week 2026-09-14',
+        nextCommand: 'cal week 2026-09-28',
+      );
+
+      expect(block.title, '21–27 Sep 2026');
+      expect(block.previousCommand, 'cal week 2026-09-14');
+      expect(block.nextCommand, 'cal week 2026-09-28');
+    });
+
     test('an entry carries times, title, place and colour', () {
       final entry = agenda([
         _event(

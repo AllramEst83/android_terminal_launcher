@@ -119,9 +119,14 @@ Future<CommandResult> _cal(
         weekView(events, day, today),
         block: plain
             ? null
-            : agendaBlock(events, [
-                for (var i = 0; i < 7; i++) addDays(monday, i),
-              ], now),
+            : agendaBlock(
+                events,
+                [for (var i = 0; i < 7; i++) addDays(monday, i)],
+                now,
+                title: weekHeading(monday),
+                previousCommand: 'cal week ${isoDate(addDays(monday, -7))}',
+                nextCommand: 'cal week ${isoDate(addDays(monday, 7))}',
+              ),
       ),
     );
   }
