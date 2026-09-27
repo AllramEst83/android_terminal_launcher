@@ -80,6 +80,23 @@ void main() {
 
       expect(rig.whatsapp.opened.single.$1, '0708');
     });
+
+    test('to a name with no text: opens the chat empty', () async {
+      final result = await rig.run(['anna']);
+
+      expect(result, isA<CommandOutput>());
+      expect(_lines(result), [
+        Messages.waOpened('Anna Andersson (070-123 45 67)'),
+      ]);
+      expect(rig.whatsapp.opened, [('0701234567', '')]);
+    });
+
+    test('to a number with no text: no phone book needed either', () async {
+      await rig.run(['0701234567']);
+
+      expect(rig.whatsapp.opened, [('0701234567', '')]);
+      expect(rig.contacts.calls, 0);
+    });
   });
 
   group('never guesses who to message', () {
@@ -131,18 +148,37 @@ void main() {
       },
     );
 
-    test('no arguments, or only a recipient', () async {
+    test('no arguments is a usage error; a recipient alone is not', () async {
       expect(_lines(await rig.run([])), Messages.waUsage);
-      expect(_lines(await rig.run(['anna'])), Messages.waUsage);
+      expect(rig.whatsapp.opened, isEmpty);
+
+      await rig.run(['anna']);
+      expect(rig.whatsapp.opened, [('0701234567', '')]);
+    });
+
+    test('more than a recipient and text is a usage error', () async {
+      final result = await rig.run(['anna', 'hi', 'extra']);
+
+      expect(result, isA<CommandFailure>());
+      expect(_lines(result), Messages.waUsage);
       expect(rig.whatsapp.opened, isEmpty);
     });
 
-    test('an empty or blank text or recipient is a usage error', () async {
-      expect(_lines(await rig.run(['anna', ''])), Messages.waUsage);
-      expect(_lines(await rig.run(['anna', '   '])), Messages.waUsage);
+    test('an empty or blank recipient is a usage error', () async {
+      expect(_lines(await rig.run([''])), Messages.waUsage);
       expect(_lines(await rig.run(['', 'hi'])), Messages.waUsage);
       expect(rig.whatsapp.opened, isEmpty);
     });
+
+    test(
+      'an empty or blank text is not an error, just opened as given',
+      () async {
+        await rig.run(['anna', '']);
+        await rig.run(['bo', '   ']);
+
+        expect(rig.whatsapp.opened, [('0701234567', ''), ('0708', '   ')]);
+      },
+    );
 
     test('a text over the limit is refused, and nothing is opened', () async {
       final result = await rig.run(['anna', 'x' * (waMaxLength + 1)]);

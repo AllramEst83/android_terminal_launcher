@@ -10,10 +10,11 @@ import io.flutter.plugin.common.MethodChannel
 
 /**
  * Opens a WhatsApp chat for the Dart `AndroidWhatsAppService`, via the public
- * `wa.me` link (no API to send silently, and none is wanted: the user must
- * still tap send). `ACTION_VIEW` on an `https` link needs no permission and
- * falls back to a browser when WhatsApp is not installed, same as `wa.me`
- * does outside this app. Never throws into Flutter.
+ * `wa.me` link, with or without prefilled text (no API to send silently, and
+ * none is wanted: the user still types or taps send there). `ACTION_VIEW` on
+ * an `https` link needs no permission and falls back to a browser when
+ * WhatsApp is not installed, same as `wa.me` does outside this app. Never
+ * throws into Flutter.
  */
 class WhatsAppChannelHandler(
     private val context: Context,
@@ -37,9 +38,14 @@ class WhatsAppChannelHandler(
             return
         }
         try {
-            // wa.me wants digits only, no leading `+`.
+            // wa.me wants digits only, no leading `+`. An empty text opens the
+            // chat with nothing pre-filled, so the query string is left off.
             val digits = number.removePrefix("+")
-            val url = "https://wa.me/$digits?text=${Uri.encode(text)}"
+            val url = if (text.isEmpty()) {
+                "https://wa.me/$digits"
+            } else {
+                "https://wa.me/$digits?text=${Uri.encode(text)}"
+            }
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(url))
             intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             context.startActivity(intent)

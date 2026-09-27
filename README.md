@@ -69,7 +69,7 @@ palette.
 | `contact <name>` / `contact list` | Look up a contact; each number has `call`, `sms` and `wa` buttons. `contact list` shows everyone grouped by initial, A to Z then Å Ä Ö |
 | `call <name or number>` | Call (or open the dialer if the permission is refused) |
 | `sms <name or number> "text"` | Send a text message |
-| `wa <name or number> "text"` | Open the chat in WhatsApp with the text ready; you tap send there (no API sends it silently) |
+| `wa <name or number> ["text"]` | Open the chat in WhatsApp, empty or with the text ready; you type or tap send there (no API sends it silently) |
 | `note` / `todo` | Numbered lists: `add`, `list`, `show`, `edit`, `rm`, `find`; todos also `done`, `undo`, `clear` |
 | `theme [name]` | `dark`, `light`, `coffee`, `unicorn`, `pastel`, `cyberpunk` |
 | `font [size]` | `small`, `normal`, `large`, `huge` |

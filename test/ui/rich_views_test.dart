@@ -518,14 +518,14 @@ void main() {
           number: '070-123 45 67',
           callCommand: 'call 0701234567',
           smsCommand: 'sms 0701234567 "',
-          waCommand: 'wa 0701234567 "',
+          waCommand: 'wa 0701234567',
         ),
         ContactNumber(
           label: 'work',
           number: '08-555 01 02',
           callCommand: 'call 085550102',
           smsCommand: 'sms 085550102 "',
-          waCommand: 'wa 085550102 "',
+          waCommand: 'wa 085550102',
         ),
       ],
     );
@@ -553,7 +553,7 @@ void main() {
       expect(taps.filled, [
         'call 0701234567',
         'sms 085550102 "',
-        'wa 0701234567 "',
+        'wa 0701234567',
       ]);
       expect(taps.ran, isEmpty, reason: 'a stray tap must never ring or text');
     });

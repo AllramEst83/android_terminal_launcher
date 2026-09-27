@@ -7,7 +7,9 @@ import 'package:android_terminal_launcher/terminal/tools/quote.dart';
 
 /// [contacts] as cards. Each number offers `call`, `sms` and `wa`, which put
 /// the command in the prompt (the number, digits only, so nothing in a name
-/// can break the line) and never do it. [more] matched but are not shown.
+/// can break the line) and never do it. `wa` fills ready to send, empty, since
+/// its text is optional; add `"text"` before sending to pre-fill one. [more]
+/// matched but are not shown.
 ContactsBlock contactsBlock(List<Contact> contacts, {int more = 0}) =>
     ContactsBlock(
       more: more,
@@ -22,7 +24,7 @@ ContactsBlock contactsBlock(List<Contact> contacts, {int more = 0}) =>
                   number: number.number,
                   callCommand: 'call ${dialable(number.number)}',
                   smsCommand: 'sms ${dialable(number.number)} "',
-                  waCommand: 'wa ${dialable(number.number)} "',
+                  waCommand: 'wa ${dialable(number.number)}',
                 ),
             ],
           ),

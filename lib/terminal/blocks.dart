@@ -508,7 +508,9 @@ class ContactNumber {
   /// Put in the prompt, ready for the text: `sms 0701234567 "`.
   final String smsCommand;
 
-  /// Put in the prompt, ready for the text: `wa 0701234567 "`.
+  /// Put in the prompt, ready to send empty: `wa 0701234567`. The text is
+  /// optional, so this opens WhatsApp with nothing pre-filled unless `"text"`
+  /// is added before sending.
   final String waCommand;
 }
 

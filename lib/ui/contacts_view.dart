@@ -13,8 +13,8 @@ ValueKey<String> contactWaKey(String number) => ValueKey('contact-wa-$number');
 
 /// People and their numbers. Each number has `call`, `sms` and `wa` buttons
 /// that put the command in the prompt rather than doing it: a stray tap must
-/// never ring someone, send a text or open a chat, and the text still has to
-/// be typed.
+/// never ring someone, send a text or open a chat. `sms` still needs a typed
+/// text; `wa`'s is optional, so it fills ready to send as it stands.
 class ContactsView extends StatelessWidget {
   const ContactsView({super.key, required this.block, required this.onFill});
 

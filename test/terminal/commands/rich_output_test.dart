@@ -415,6 +415,17 @@ void main() {
     });
 
     test(
+      'several people for wa with no text: the fill has no empty quotes',
+      () async {
+        final failure = await _fail(wa([anna, annika]), ['anders']);
+
+        final options = (failure.block as ChoiceBlock).groups.single.options;
+        expect(options.first.command, 'wa "Anna Andersson"');
+        expect(options.every((o) => o.fill), isTrue);
+      },
+    );
+
+    test(
       'one person, several numbers: each fills the command with the number',
       () async {
         final failure = await _fail(call([cecilia]), ['cecilia']);

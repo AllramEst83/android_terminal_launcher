@@ -236,8 +236,8 @@ void main() {
         'sms +468123456 "',
       ]);
       expect(numbers.map((n) => n.waCommand), [
-        'wa 0701234567 "',
-        'wa +468123456 "',
+        'wa 0701234567',
+        'wa +468123456',
       ]);
       expect(numbers.map((n) => n.label), ['mobile', 'work']);
     });
