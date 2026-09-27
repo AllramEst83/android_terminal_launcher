@@ -11,6 +11,7 @@ class MainActivity : FlutterActivity() {
     private var contactsChannel: ContactsChannelHandler? = null
     private var phoneChannel: PhoneChannelHandler? = null
     private var smsChannel: SmsChannelHandler? = null
+    private var whatsAppChannel: WhatsAppChannelHandler? = null
     private var clockChannel: ClockChannelHandler? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -25,6 +26,7 @@ class MainActivity : FlutterActivity() {
         contactsChannel = ContactsChannelHandler(applicationContext, messenger)
         phoneChannel = PhoneChannelHandler(applicationContext, messenger)
         smsChannel = SmsChannelHandler(applicationContext, messenger)
+        whatsAppChannel = WhatsAppChannelHandler(applicationContext, messenger)
         clockChannel = ClockChannelHandler(applicationContext, messenger)
     }
 
@@ -55,6 +57,8 @@ class MainActivity : FlutterActivity() {
         phoneChannel = null
         smsChannel?.dispose()
         smsChannel = null
+        whatsAppChannel?.dispose()
+        whatsAppChannel = null
         clockChannel?.dispose()
         clockChannel = null
         super.cleanUpFlutterEngine(flutterEngine)

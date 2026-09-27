@@ -32,6 +32,7 @@ import '../../fakes/fake_phone_service.dart';
 import '../../fakes/fake_sms_service.dart';
 import '../../fakes/fake_theme_settings.dart';
 import '../../fakes/fake_view_mode_settings.dart';
+import '../../fakes/fake_whatsapp_service.dart';
 import '../../fakes/in_memory_local_store.dart';
 import '../../fakes/static_provider.dart';
 import '../../fakes/test_command.dart';
@@ -85,6 +86,7 @@ CommandRegistry _fullRegistry() {
       contacts: FakeContactsService(),
       phone: FakePhoneService(),
       sms: FakeSmsService(),
+      whatsapp: FakeWhatsAppService(),
     ),
     AppearanceProvider(
       FakeThemeSettings(),
@@ -130,7 +132,7 @@ void main() {
       final rows = lines.where((l) => l.startsWith('  ')).toList();
       expect(rows.length, greaterThan(1));
       for (final row in rows) {
-        expect(row.length, lessThanOrEqualTo(2 + 32), reason: row);
+        expect(row.length, lessThanOrEqualTo(_phoneColumns), reason: row);
       }
       expect(
         rows.join(' ').split(RegExp(r'\s+')).where((w) => w.isNotEmpty),

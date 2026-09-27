@@ -471,8 +471,8 @@ final class EntryDetailBlock extends RichBlock {
   final String? removeCommand;
 }
 
-/// People and their numbers. Each number offers to call or text it, which puts
-/// the command in the prompt rather than doing it.
+/// People and their numbers. Each number offers to call, text or WhatsApp it,
+/// which puts the command in the prompt rather than doing it.
 final class ContactsBlock extends RichBlock {
   const ContactsBlock({required this.contacts, this.more = 0});
 
@@ -495,6 +495,7 @@ class ContactNumber {
     required this.number,
     required this.callCommand,
     required this.smsCommand,
+    required this.waCommand,
   });
 
   /// `mobile`, `home`.
@@ -506,6 +507,9 @@ class ContactNumber {
 
   /// Put in the prompt, ready for the text: `sms 0701234567 "`.
   final String smsCommand;
+
+  /// Put in the prompt, ready for the text: `wa 0701234567 "`.
+  final String waCommand;
 }
 
 /// The newest messages in the inbox, newest first.

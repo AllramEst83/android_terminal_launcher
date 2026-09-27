@@ -8,6 +8,7 @@ import 'package:android_terminal_launcher/services/android_location_service.dart
 import 'package:android_terminal_launcher/services/android_permission_service.dart';
 import 'package:android_terminal_launcher/services/android_phone_service.dart';
 import 'package:android_terminal_launcher/services/android_sms_service.dart';
+import 'package:android_terminal_launcher/services/android_whatsapp_service.dart';
 import 'package:android_terminal_launcher/services/currency_rates.dart';
 import 'package:android_terminal_launcher/services/entry_store.dart';
 import 'package:android_terminal_launcher/services/flutter_secret_store.dart';
@@ -86,6 +87,7 @@ Future<void> main() async {
         contacts: AndroidContactsService(permissions: permissions),
         phone: AndroidPhoneService(permissions: permissions),
         sms: AndroidSmsService(permissions: permissions),
+        whatsapp: const AndroidWhatsAppService(),
       ),
       MailProvider(
         ImapMailService(accounts: MailAccountStore(FlutterSecretStore())),

@@ -180,6 +180,18 @@ abstract final class Messages {
   static String smsError(String reason) => 'sms: $reason';
   static const smsSendingNote = 'sent at once; cannot be undone';
 
+  static const waUsage = [
+    'usage: wa <name or number> "text"',
+    'quote a name or text of several',
+    'words. try: help wa',
+  ];
+  static String waTooLong(int max) => 'text is too long (max $max characters)';
+  static const waOrNumber = 'or use a number: wa <number> "text"';
+  static const waTryNumber = 'open chat with one: wa <number> "text"';
+  static String waOpened(String who) => 'WhatsApp opened for $who';
+  static String waError(String reason) => 'wa: $reason';
+  static const waSendingNote = 'opens WhatsApp; you tap send there';
+
   static const textTvUsage = [
     'usage: texttv [page] [part]',
     'try: help texttv',

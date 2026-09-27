@@ -9,10 +9,12 @@ ValueKey<String> contactCallKey(String number) =>
     ValueKey('contact-call-$number');
 ValueKey<String> contactSmsKey(String number) =>
     ValueKey('contact-sms-$number');
+ValueKey<String> contactWaKey(String number) => ValueKey('contact-wa-$number');
 
-/// People and their numbers. Each number has a `call` and an `sms` button that
-/// put the command in the prompt rather than doing it: a stray tap must never
-/// ring someone or send a text, and the text still has to be typed.
+/// People and their numbers. Each number has `call`, `sms` and `wa` buttons
+/// that put the command in the prompt rather than doing it: a stray tap must
+/// never ring someone, send a text or open a chat, and the text still has to
+/// be typed.
 class ContactsView extends StatelessWidget {
   const ContactsView({super.key, required this.block, required this.onFill});
 
@@ -81,6 +83,13 @@ class _Card extends StatelessWidget {
                   small: true,
                   semanticLabel: 'text ${card.name}, ${number.label}',
                   onTap: () => onFill(number.smsCommand),
+                ),
+                BlockChip(
+                  key: contactWaKey(number.number),
+                  label: 'wa',
+                  small: true,
+                  semanticLabel: 'WhatsApp ${card.name}, ${number.label}',
+                  onTap: () => onFill(number.waCommand),
                 ),
               ],
             ),

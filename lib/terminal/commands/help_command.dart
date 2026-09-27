@@ -21,8 +21,9 @@ final helpCommand = Command(
 );
 
 /// Names are packed into rows no wider than this, so a group of commands takes
-/// a line or two on a phone instead of one line per command.
-const _rowWidth = 32;
+/// a line or two on a phone instead of one line per command. Leaves room for
+/// the 2-space indent `_overview` adds, up to the ~36-column phone screen.
+const _rowWidth = 34;
 
 Future<CommandResult> _help(CommandContext context) async {
   final groups = _groupsOf(context);

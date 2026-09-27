@@ -27,6 +27,7 @@ import 'package:android_terminal_launcher/terminal/commands/sms_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/theme_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/ui_command.dart';
 import 'package:android_terminal_launcher/terminal/commands/uninstall_command.dart';
+import 'package:android_terminal_launcher/terminal/commands/wa_command.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import '../../fakes/fake_app_repository.dart';
@@ -37,6 +38,7 @@ import '../../fakes/fake_phone_service.dart';
 import '../../fakes/fake_sms_service.dart';
 import '../../fakes/fake_theme_settings.dart';
 import '../../fakes/fake_view_mode_settings.dart';
+import '../../fakes/fake_whatsapp_service.dart';
 import '../../fakes/in_memory_local_store.dart';
 
 // Saturday 26 September 2026.
@@ -338,7 +340,7 @@ void main() {
     });
   });
 
-  group('call and sms', () {
+  group('call, sms and wa', () {
     final anna = contact('Anna Andersson', [
       'mobile:070-123 45 67',
       'work:08-555 01 02',
@@ -358,6 +360,10 @@ void main() {
         );
     Command sms(List<Contact> people) =>
         smsCommand(FakeContactsService(ContactsRead(people)), FakeSmsService());
+    Command wa(List<Contact> people) => waCommand(
+      FakeContactsService(ContactsRead(people)),
+      FakeWhatsAppService(),
+    );
 
     test('a placed call is a done notice, the dialer an info one', () async {
       final placed = await _out(call([bo]), ['bo']);
@@ -372,6 +378,12 @@ void main() {
 
     test('a sent text is a done notice', () async {
       final out = await _out(sms([bo]), ['bo', 'hi']);
+
+      expect((out.block as NoticeBlock).kind, NoticeKind.success);
+    });
+
+    test('an opened WhatsApp chat is a done notice', () async {
+      final out = await _out(wa([bo]), ['bo', 'hi']);
 
       expect((out.block as NoticeBlock).kind, NoticeKind.success);
     });

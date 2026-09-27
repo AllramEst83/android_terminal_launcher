@@ -66,9 +66,10 @@ palette.
 | `alarm <time> [days] [label]` | Set an alarm in your clock app: `alarm 07:30`, `alarm 7am`, `alarm 6:45 weekdays gym`. With no time it opens your alarms |
 | `history [clear]` | The commands you use most (also shown above an empty prompt); `history clear` forgets them |
 | `mail [rm <n>\|setup <email>\|forget]` | Your 20 newest emails; `mail rm 3` moves one to Trash. `mail setup you@gmail.com` asks for an app password on a hidden line (see [Mail](#mail)); `mail forget` removes the account |
-| `contact <name>` / `contact list` | Look up a contact; each number has `call` and `sms` buttons. `contact list` shows everyone grouped by initial, A to Z then Å Ä Ö |
+| `contact <name>` / `contact list` | Look up a contact; each number has `call`, `sms` and `wa` buttons. `contact list` shows everyone grouped by initial, A to Z then Å Ä Ö |
 | `call <name or number>` | Call (or open the dialer if the permission is refused) |
 | `sms <name or number> "text"` | Send a text message |
+| `wa <name or number> "text"` | Open the chat in WhatsApp with the text ready; you tap send there (no API sends it silently) |
 | `note` / `todo` | Numbered lists: `add`, `list`, `show`, `edit`, `rm`, `find`; todos also `done`, `undo`, `clear` |
 | `theme [name]` | `dark`, `light`, `coffee`, `unicorn`, `pastel`, `cyberpunk` |
 | `font [size]` | `small`, `normal`, `large`, `huge` |
@@ -87,11 +88,11 @@ A strip above the prompt suggests command names and, after `open ` or
 most, ranked by how often and how recently (`history`), and a line you have run
 before is offered as you type its start. Tapping a suggestion fills the input;
 Enter runs it. Only commands that worked are remembered, taps inside cards are
-not, and nothing private is kept: `sms` is never recorded, and `note`, `todo` and
-`mail` keep only their name.
+not, and nothing private is kept: `sms` and `wa` are never recorded, and
+`note`, `todo` and `mail` keep only their name.
 Buttons in cards work the same way where a stray tap could do harm: `call`,
-`sms`, `note edit`, `note rm` and `uninstall` only put the command in the prompt
-for you to check and send.
+`sms`, `wa`, `note edit`, `note rm` and `uninstall` only put the command in the
+prompt for you to check and send.
 
 ## Permissions
 
@@ -99,8 +100,10 @@ Asked for the first time a command needs them, and never otherwise: internet
 (Text TV, weather, rates, mail), location (`weather`), calendar (`cal`), a
 second one to write to it (`event add`/`edit`/`rm`, only when one of those
 actually runs), contacts (`contact`, `call`, `sms`), phone (`call`) and SMS
-(`sms`). Refuse one and only that command is affected. `timer` and `alarm`
-need the ordinary "set alarm" permission, which Android grants at install.
+(`sms`). `wa` needs none of these: it only opens WhatsApp (or a browser) via a
+public link, the same as tapping a `wa.me` link anywhere else. Refuse one and
+only that command is affected. `timer` and `alarm` need the ordinary "set
+alarm" permission, which Android grants at install.
 
 
 ## Mail
@@ -157,7 +160,7 @@ names; changing them is a much larger job for no visible gain.
 - `lib/terminal/` — pure-Dart core: tokenizer, registry, commands, session, and the rich-block values commands return
 - `lib/services/` — service interfaces (apps, calendar, contacts, weather, mail, ...) and their Android or network implementations
 - `lib/ui/` — widgets that render session state and forward input, including the card views
-- `android/` — manifest and the Kotlin channel handlers (apps, permissions, location, calendar, contacts, phone, SMS)
+- `android/` — manifest and the Kotlin channel handlers (apps, permissions, location, calendar, contacts, phone, SMS, WhatsApp)
 - `test/` — mirrors `lib/`; `test/fakes/` holds the fakes
 - `screenshots/` — the images shown at the top of this README
 - `tool/` — `make_app_icon.py` builds the launcher icon from `icons/`

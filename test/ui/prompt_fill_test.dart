@@ -23,6 +23,7 @@ const _anna = ContactCard(
       number: '070-123 45 67',
       callCommand: 'call 0701234567',
       smsCommand: 'sms 0701234567 "',
+      waCommand: 'wa 0701234567 "',
     ),
   ],
 );

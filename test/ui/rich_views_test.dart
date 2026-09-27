@@ -518,12 +518,14 @@ void main() {
           number: '070-123 45 67',
           callCommand: 'call 0701234567',
           smsCommand: 'sms 0701234567 "',
+          waCommand: 'wa 0701234567 "',
         ),
         ContactNumber(
           label: 'work',
           number: '08-555 01 02',
           callCommand: 'call 085550102',
           smsCommand: 'sms 085550102 "',
+          waCommand: 'wa 085550102 "',
         ),
       ],
     );
@@ -539,15 +541,20 @@ void main() {
       expect(find.text('…and 4 more'), findsOneWidget);
     });
 
-    testWidgets('call and sms fill the prompt, and nothing runs', (
+    testWidgets('call, sms and wa fill the prompt, and nothing runs', (
       tester,
     ) async {
       final taps = await _pump(tester, const ContactsBlock(contacts: [anna]));
 
       await tester.tap(find.byKey(contactCallKey('070-123 45 67')));
       await tester.tap(find.byKey(contactSmsKey('08-555 01 02')));
+      await tester.tap(find.byKey(contactWaKey('070-123 45 67')));
 
-      expect(taps.filled, ['call 0701234567', 'sms 085550102 "']);
+      expect(taps.filled, [
+        'call 0701234567',
+        'sms 085550102 "',
+        'wa 0701234567 "',
+      ]);
       expect(taps.ran, isEmpty, reason: 'a stray tap must never ring or text');
     });
 
@@ -569,6 +576,10 @@ void main() {
       );
       expect(
         find.bySemanticsLabel('text Anna Andersson, work'),
+        findsOneWidget,
+      );
+      expect(
+        find.bySemanticsLabel('WhatsApp Anna Andersson, mobile'),
         findsOneWidget,
       );
       handle.dispose();
@@ -650,6 +661,7 @@ void main() {
                 number: '+46 (0)70 123 45 67 ext 89',
                 callCommand: 'c',
                 smsCommand: 's',
+                waCommand: 'w',
               ),
             ],
           ),
